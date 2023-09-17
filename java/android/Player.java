@@ -276,7 +276,7 @@ public class Player extends ListActivity
 	{
 		Intent intent = new Intent(Intent.ACTION_SEND);
 		intent.setType("text/plain");
-		intent.putExtra(Intent.EXTRA_TEXT, "https://asma.atari.org/asmadb/asma.html#/" + playingFilename + (playingSong > 0 ? "/" + playingSong : ""));
+		intent.putExtra(Intent.EXTRA_TEXT, "https://asma.atari.org/asmadb/#/" + playingFilename + (playingSong > 0 ? "/" + playingSong : ""));
 		startActivity(Intent.createChooser(intent, null));
 	}
 

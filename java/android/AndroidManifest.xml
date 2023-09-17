@@ -19,7 +19,7 @@
 				<category android:name="android.intent.category.BROWSABLE" />
 				<data android:scheme="http" />
 				<data android:scheme="https" />
-				<data android:host="asma.atari.org" android:path="/asmadb/asma.html" />
+				<data android:host="asma.atari.org" android:path="/asmadb/" />
 			</intent-filter>
 			<meta-data android:name="android.app.searchable" android:resource="@xml/searchable" />
 		</activity>
