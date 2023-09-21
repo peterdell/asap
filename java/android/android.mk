@@ -1,7 +1,7 @@
 ASMA_DIR = ../aasma/asma
 ANDROID_SDK = $(subst \,/,$(LOCALAPPDATA))/Android/Sdk
 ANDROID_JAR = $(ANDROID_SDK)/platforms/android-33/android.jar
-ANDROID_BUILD_TOOLS = $(ANDROID_SDK)/build-tools/33.0.2
+ANDROID_BUILD_TOOLS = $(ANDROID_SDK)/build-tools/34.0.0
 ANDROID_BACKGROUND_FILTER = -brightness-contrast -380x-90
 
 JAVA = $(DO)java
