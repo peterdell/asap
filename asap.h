@@ -144,12 +144,12 @@ void ASAPInfo_Delete(ASAPInfo *self);
 /**
  * ASAP version - major part.
  */
-#define ASAPInfo_VERSION_MAJOR 5
+#define ASAPInfo_VERSION_MAJOR 6
 
 /**
  * ASAP version - minor part.
  */
-#define ASAPInfo_VERSION_MINOR 3
+#define ASAPInfo_VERSION_MINOR 0
 
 /**
  * ASAP version - micro part.
@@ -159,7 +159,7 @@ void ASAPInfo_Delete(ASAPInfo *self);
 /**
  * ASAP version as a string.
  */
-#define ASAPInfo_VERSION "5.3.0"
+#define ASAPInfo_VERSION "6.0.0"
 
 /**
  * Years ASAP was created in.

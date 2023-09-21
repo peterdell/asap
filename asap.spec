@@ -1,10 +1,10 @@
 Name: asap
-Version: 5.3.0
+Version: 6.0.0
 Release: 1
 Summary: Player of Atari 8-bit music
 License: GPLv2+
-Source: http://prdownloads.sourceforge.net/asap/asap-%{version}.tar.gz
-URL: http://asap.sourceforge.net/
+Source: https://downloads.sourceforge.net/project/asap/asap/%{version}/asap-%{version}.tar.gz
+URL: https://asap.sourceforge.net/
 BuildRequires: gcc
 
 %description
@@ -59,6 +59,9 @@ make DESTDIR=%{buildroot} prefix=%{_prefix} libdir=%{_libdir} install install-vl
 %{_libdir}/xmms2/libxmms_asap.so
 
 %changelog
+* Thu Sep 21 2023 Piotr Fusik <fox@scene.pl>
+- 6.0.0-1
+
 * Wed Feb 8 2023 Piotr Fusik <fox@scene.pl>
 - 5.3.0-1
 
