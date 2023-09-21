@@ -1,6 +1,6 @@
 # MinGW for most ports
 WIN32_CC = $(DO)i686-w64-mingw32-gcc $(WIN32_CARGS) $(filter-out %.h,$^)
-WIN32_CXX = $(DO)i686-w64-mingw32-g++ $(WIN32_CARGS) -std=c++17 $(filter-out %.h %.hpp,$^)
+WIN32_CXX = $(DO)i686-w64-mingw32-g++ $(WIN32_CARGS) -std=c++20 $(filter-out %.h %.hpp,$^)
 WIN32_WINDRES = $(DO)i686-w64-mingw32-windres -o $@ $<
 VLC_INCLUDE = ../vlc/include
 VLC_LIB32 = "C:/Program Files (x86)/VideoLAN/VLC"
@@ -8,16 +8,16 @@ VLC_LIB64 = "C:/Program Files/VideoLAN/VLC"
 
 # Microsoft compiler for foobar2000
 FOOBAR2000_SDK_DIR = ../foobar2000_SDK
-WIN32_CL = $(WIN32_CLDO)win32/foobar2000/msvc32.bat cl -std:c++17 -GR- -GS- -wd4996 -DNDEBUG $(WIN32_CLARGS) $(filter-out %.h,$^)
+WIN32_CL = $(WIN32_CLDO)win32/foobar2000/msvc32.bat cl -std:c++20 -GR- -GS- -wd4996 -DNDEBUG $(WIN32_CLARGS) $(filter-out %.h,$^)
 WIN32_LINKOPT = -link -release -noexp -noimplib
 WIN32_MKLIB = $(DO)win32/foobar2000/msvc32.bat lib -nologo -ltcg -out:$@ $^
-WIN64_CL = $(WIN32_CLDO)win32/foobar2000/msvc64.bat cl -std:c++17 -GR- -GS- -wd4996 -DNDEBUG $(WIN32_CLARGS) $(filter-out %.h,$^)
+WIN64_CL = $(WIN32_CLDO)win32/foobar2000/msvc64.bat cl -std:c++20 -GR- -GS- -wd4996 -DNDEBUG $(WIN32_CLARGS) $(filter-out %.h,$^)
 WIN64_LINKOPT = $(WIN32_LINKOPT)
 WIN64_MKLIB = $(DO)win32/foobar2000/msvc64.bat lib -nologo -ltcg -out:$@ $^
 
 # MinGW x64
 WIN64_CC = $(DO)x86_64-w64-mingw32-gcc $(WIN32_CARGS) $(filter-out %.h,$^)
-WIN64_CXX = $(DO)x86_64-w64-mingw32-g++ $(WIN32_CARGS) -std=c++17 $(filter-out %.h %.hpp,$^)
+WIN64_CXX = $(DO)x86_64-w64-mingw32-g++ $(WIN32_CARGS) -std=c++20 $(filter-out %.h %.hpp,$^)
 WIN64_WINDRES = $(DO)x86_64-w64-mingw32-windres -o $@ $<
 
 # Windows Installer XML
