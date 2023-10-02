@@ -1,7 +1,7 @@
 /*
  * in_asap.c - ASAP plugin for Winamp
  *
- * Copyright (C) 2005-2019  Piotr Fusik
+ * Copyright (C) 2005-2023  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -83,6 +83,7 @@ void onUpdatePlayingInfo(void)
 static void config(HWND hwndParent)
 {
 	if (settingsDialog(mod.hDllInstance, hwndParent)) {
+		writeIniInt("sample_rate", sample_rate);
 		writeIniInt("song_length", song_length);
 		writeIniInt("silence_seconds", silence_seconds);
 		writeIniInt("play_loops", play_loops);
@@ -231,6 +232,7 @@ static void init(void)
 	asap = ASAP_New();
 	title_info = ASAPInfo_New();
 	ini_file = (const char *) SendMessage(mod.hMainWindow, WM_WA_IPC, 0, IPC_GETINIFILE);
+	sample_rate = GetPrivateProfileInt(INI_SECTION, "sample_rate", sample_rate, ini_file);
 	song_length = GetPrivateProfileInt(INI_SECTION, "song_length", song_length, ini_file);
 	silence_seconds = GetPrivateProfileInt(INI_SECTION, "silence_seconds", silence_seconds, ini_file);
 	play_loops = GetPrivateProfileInt(INI_SECTION, "play_loops", play_loops, ini_file);
@@ -314,6 +316,7 @@ static int isOurFile(char *fn)
 
 static DWORD WINAPI playThread(LPVOID dummy)
 {
+	int rate = ASAP_GetSampleRate(asap);
 	int channels = ASAPInfo_GetChannels(ASAP_GetInfo(asap));
 	while (thread_run) {
 		static BYTE buffer[BUFFERED_BLOCKS * 2 * (BITS_PER_SAMPLE / 8)
@@ -347,7 +350,7 @@ static DWORD WINAPI playThread(LPVOID dummy)
 			mod.VSAAddPCMData(buffer, channels, BITS_PER_SAMPLE, t);
 #if SUPPORT_EQUALIZER
 			t = buffered_bytes / (channels * (BITS_PER_SAMPLE / 8));
-			t = mod.dsp_dosamples((short *) buffer, t, BITS_PER_SAMPLE, channels, ASAP_SAMPLE_RATE);
+			t = mod.dsp_dosamples((short *) buffer, t, BITS_PER_SAMPLE, channels, rate);
 			t *= channels * (BITS_PER_SAMPLE / 8);
 			mod.outMod->Write((char *) buffer, t);
 #else
@@ -373,15 +376,16 @@ static int play(char *fn)
 	if (song < 0)
 		song = ASAPInfo_GetDefaultSong(info);
 	duration = playSong(song);
+	int rate = sample_rate;
 	int channels = ASAPInfo_GetChannels(info);
-	int maxlatency = mod.outMod->Open(ASAP_SAMPLE_RATE, channels, BITS_PER_SAMPLE, -1, -1);
+	int maxlatency = mod.outMod->Open(rate, channels, BITS_PER_SAMPLE, -1, -1);
 	if (maxlatency < 0)
 		return 1;
-	mod.SetInfo(BITS_PER_SAMPLE, ASAP_SAMPLE_RATE / 1000, channels, 1);
-	mod.SAVSAInit(maxlatency, ASAP_SAMPLE_RATE);
+	mod.SetInfo(BITS_PER_SAMPLE, rate / 1000, channels, 1);
+	mod.SAVSAInit(maxlatency, rate);
 	// the order of VSASetInfo's arguments in in2.h is wrong!
 	// http://forums.winamp.com/showthread.php?postid=1841035
-	mod.VSASetInfo(ASAP_SAMPLE_RATE, channels);
+	mod.VSASetInfo(rate, channels);
 	mod.outMod->SetVolume(-666);
 	seek_needed = -1;
 	thread_run = true;
