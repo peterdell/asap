@@ -199,7 +199,6 @@ public:
 		int duration = get_song_duration(p_subsong, false);
 		if (duration >= 0)
 			p_info.set_length(duration / 1000.0);
-		p_info.info_set_int("samplerate", ASAP_GetSampleRate(asap));
 		const ASAPInfo *info = ASAP_GetInfo(asap);
 		p_info.info_set_int("channels", ASAPInfo_GetChannels(info));
 		p_info.info_set_int("subsongs", ASAPInfo_GetSongs(info));
