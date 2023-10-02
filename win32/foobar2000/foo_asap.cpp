@@ -391,10 +391,10 @@ public:
 		 || song_length != get_time_input()
 		 || silence_seconds != get_silence_input()
 		 || play_loops != get_loops_input())
-			return preferences_state::changed /* | preferences_state::needs_restart_playback */ | preferences_state::resettable;
+			return preferences_state::changed /* | preferences_state::needs_restart_playback */ | preferences_state::resettable | preferences_state::dark_mode_supported;
 		if (mute_mask != get_mute_input())
-			return preferences_state::changed | preferences_state::resettable;
-		return preferences_state::resettable;
+			return preferences_state::changed | preferences_state::resettable | preferences_state::dark_mode_supported;
+		return preferences_state::resettable | preferences_state::dark_mode_supported;
 	}
 
 	HWND get_wnd() override
