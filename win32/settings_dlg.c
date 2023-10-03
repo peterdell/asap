@@ -43,10 +43,11 @@ void setFocusAndSelect(HWND hDlg, int nID)
 void settingsDialogSet(HWND hDlg, int sample_rate, int song_length, int silence_seconds, bool play_loops, int mute_mask)
 {
 	HWND hWnd = GetDlgItem(hDlg, IDC_SAMPLERATE);
-	SendMessage(hWnd, CB_ADDSTRING, 0, (LPARAM) "44100");
-	SendMessage(hWnd, CB_ADDSTRING, 0, (LPARAM) "48000");
-	SendMessage(hWnd, CB_ADDSTRING, 0, (LPARAM) "96000");
-	SendMessage(hWnd, CB_SETCURSEL, sample_rate == 48000 ? 1 : sample_rate == 96000 ? 2 : 0, 0);
+	SendMessage(hWnd, CB_ADDSTRING, 0, (LPARAM) "44.1");
+	SendMessage(hWnd, CB_ADDSTRING, 0, (LPARAM) "48");
+	SendMessage(hWnd, CB_ADDSTRING, 0, (LPARAM) "96");
+	SendMessage(hWnd, CB_ADDSTRING, 0, (LPARAM) "192");
+	SendMessage(hWnd, CB_SETCURSEL, sample_rate == 48000 ? 1 : sample_rate == 96000 ? 2 : sample_rate == 192000 ? 3 : 0, 0);
 	if (song_length <= 0) {
 		CheckRadioButton(hDlg, IDC_UNLIMITED, IDC_LIMITED, IDC_UNLIMITED);
 		SetDlgItemInt(hDlg, IDC_MINUTES, DEFAULT_SONG_LENGTH / 60, FALSE);
@@ -81,6 +82,8 @@ int settingsGetSampleRate(HWND hDlg)
 		return 48000;
 	case 2:
 		return 96000;
+	case 3:
+		return 192000;
 	default:
 		return 44100;
 	}
