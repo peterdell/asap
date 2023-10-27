@@ -125,6 +125,11 @@ C<<"<?>">> should be used.
 If the value is unknown, it should not be empty or consist
 of only question marks - use C<<"<?>">> instead.
 
+=item B<NTSC tag with no FASTPLAY>
+
+For compatiblity with players that don't understand the NTSC tag,
+it should be accompanied by C<FASTPLAY 262>.
+
 =item B<SONGS 1 is superfluous>
 
 C<SONGS> tag with the argument of 1 is meaningless
@@ -354,8 +359,7 @@ sub process($$) {
 		my @times;
 		for (split /[\x0D\x0A]+/, $hdr) {
 			my ($tag, $spaces1, $arg, $spaces2);
-			unless (($tag, $spaces1, $arg, $spaces2) =
-				/^([A-Z]+)(?:( +)(.+?))?( *)$/s) {
+			unless (($tag, $spaces1, $arg, $spaces2) = /^([A-Z]+)(?:( +)(.+?))?( *)$/s) {
 				$fatal{"unknown header line: $_"} = 1;
 				next;
 			}
@@ -501,7 +505,11 @@ sub process($$) {
 		else {
 			$fatal{'missing TYPE tag'} = 1;
 		}
-		++$types{$tags{'TYPE'}}{exists($tags{'STEREO'})?'stereo':'mono'};
+		if (exists($tags{'NTSC'}) && !exists($tags{'FASTPLAY'})) {
+			$tags{'FASTPLAY'} = '262';
+			$fixed{'NTSC tag with no FASTPLAY'} = 1;
+		}
+		++$types{$tags{'TYPE'}}{exists($tags{'STEREO'}) ? 'stereo' : 'mono'};
 		my $i = 0;
 		for (;;) {
 			my $bh = substr($bin, $i, 5);
