@@ -122,7 +122,7 @@ DATE "199?"
 			<p>The last example represents some unknown year in the 1990s.</p>
 		</dd>
 
-		<dt>SONG</dt>
+		<dt>SONGS</dt>
 		<dd>
 			<p>Number of subsongs in the file.
 			If there is just one song in the file, it is recommended to omit this tag.
