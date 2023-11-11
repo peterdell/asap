@@ -539,6 +539,9 @@ static INT_PTR CALLBACK infoDialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPAR
 {
 	switch (uMsg) {
 	case WM_INITDIALOG:
+#ifdef FOOBAR2000
+		setDarkInfoDialog(hDlg);
+#endif
 #ifdef PLAYING_INFO
 		CheckDlgButton(hDlg, IDC_PLAYING, playing_info ? BST_CHECKED : BST_UNCHECKED);
 #endif
@@ -635,6 +638,9 @@ static INT_PTR CALLBACK infoDialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPAR
 		}
 		break;
 	case WM_DESTROY:
+#ifdef FOOBAR2000
+		releaseDarkInfoDialog();
+#endif
 		if (monthcal != NULL) {
 			DestroyWindow(monthcal);
 			monthcal = NULL;

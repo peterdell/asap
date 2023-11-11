@@ -56,6 +56,10 @@ extern HWND infoDialog;
 void showInfoDialog(HINSTANCE hInstance, HWND hwndParent, LPCTSTR filename, int song);
 void updateInfoDialog(LPCTSTR filename, int song);
 void setPlayingSong(LPCTSTR filename, int song);
+#ifdef FOOBAR2000
+void setDarkInfoDialog(HWND hDlg);
+void releaseDarkInfoDialog(void);
+#endif
 #ifdef XMPLAY
 const ASTIL *getPlayingASTIL(void);
 #endif

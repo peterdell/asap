@@ -507,6 +507,19 @@ static service_factory_single_t<input_file_type_asap> g_input_file_type_asap_fac
 
 /* Info window ----------------------------------------------------------- */
 
+static std::unique_ptr<fb2k::CCoreDarkModeHooks> g_darkInfoDialog;
+
+extern "C" void setDarkInfoDialog(HWND hDlg)
+{
+	g_darkInfoDialog = std::make_unique<fb2k::CCoreDarkModeHooks>();
+	g_darkInfoDialog->AddDialogWithControls(hDlg);
+}
+
+extern "C" void releaseDarkInfoDialog()
+{
+	g_darkInfoDialog.reset();
+}
+
 class info_menu : public mainmenu_commands
 {
 	t_uint32 get_command_count() override
