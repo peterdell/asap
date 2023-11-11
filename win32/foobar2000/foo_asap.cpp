@@ -4,7 +4,7 @@
  * Copyright (C) 2006-2023  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
- * see http://asap.sourceforge.net
+ * see https://asap.sourceforge.net
  *
  * ASAP is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published
@@ -31,7 +31,8 @@
 #include "settings_dlg.h"
 
 #define UNICODE /* NOT for info_dlg.h */
-#include "foobar2000/SDK/foobar2000.h"
+#include "SDK/foobar2000.h"
+#include "helpers/DarkMode.h"
 
 #define BITS_PER_SAMPLE    16
 #define BUFFERED_BLOCKS    1024
@@ -343,6 +344,7 @@ class preferences_page_instance_asap : public preferences_page_instance
 {
 	const HWND m_parent;
 	const HWND m_hWnd;
+	fb2k::CDarkModeHooks m_dark;
 
 	int get_time_input() const
 	{
@@ -382,6 +384,7 @@ public:
 	preferences_page_instance_asap(HWND parent) : m_parent(parent),
 		m_hWnd(CreateDialog(core_api::get_my_instance(), MAKEINTRESOURCE(IDD_SETTINGS), parent, ::settings_dialog_proc))
 	{
+		m_dark.AddDialogWithControls(m_hWnd);
 	}
 
 	t_uint32 get_state() override
@@ -445,7 +448,7 @@ public:
 
 	bool get_help_url(pfc::string_base &p_out) override
 	{
-		p_out = "http://asap.sourceforge.net/";
+		p_out = "https://asap.sourceforge.net/";
 		return true;
 	}
 };
