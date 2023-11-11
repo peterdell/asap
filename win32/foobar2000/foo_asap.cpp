@@ -31,8 +31,8 @@
 #include "settings_dlg.h"
 
 #define UNICODE /* NOT for info_dlg.h */
-#include "SDK/foobar2000.h"
-#include "helpers/DarkMode.h"
+#include "foobar2000/SDK/foobar2000.h"
+#include "foobar2000/SDK/coreDarkMode.h"
 
 #define BITS_PER_SAMPLE    16
 #define BUFFERED_BLOCKS    1024
@@ -344,7 +344,7 @@ class preferences_page_instance_asap : public preferences_page_instance
 {
 	const HWND m_parent;
 	const HWND m_hWnd;
-	fb2k::CDarkModeHooks m_dark;
+	fb2k::CCoreDarkModeHooks m_dark;
 
 	int get_time_input() const
 	{
