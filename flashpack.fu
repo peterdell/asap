@@ -1,6 +1,6 @@
 // flashpack.fu - Atari 8-bit executable compression
 //
-// Copyright (C) 2011-2021  Piotr Fusik
+// Copyright (C) 2011-2023  Piotr Fusik
 //
 // This file is part of ASAP (Another Slight Atari Player),
 // see http://asap.sourceforge.net
@@ -70,7 +70,7 @@ class FlashPack
 
 	const int MinLoadAddress = 0x2000; // safe for most of Atari DOSes
 
-	int FindHole()
+	ushort FindHole()
 		throws
 	{
 		const int holeSize = 0x400; // FIXME: just a guess

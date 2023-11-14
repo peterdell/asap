@@ -422,7 +422,7 @@ public class ASAPWriter
 		WriteBytes(module, info.HeaderLen, moduleLen);
 	}
 
-	int WriteExecutableHeaderForSongPos!(int[]! initAndPlayer, ASAPInfo info, int player, int codeForOneSong, int codeForManySongs, int playerOffset)
+	ushort WriteExecutableHeaderForSongPos!(int[]! initAndPlayer, ASAPInfo info, int player, int codeForOneSong, int codeForManySongs, int playerOffset)
 		throws
 	{
 		if (info.GetSongs() != 1) {
@@ -800,7 +800,7 @@ public class ASAPWriter
 	}
 
 	/// Writes the given module in a possibly different file format.
-	public int Write!(
+	public uint Write!(
 		/// Output filename, used to determine the format.
 		string targetFilename,
 		/// File information got from the source file with data updated for the output file.

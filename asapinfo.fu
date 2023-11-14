@@ -47,7 +47,7 @@ class DurationParser
 	int Position;
 	int Length;
 
-	int ParseDigit!(int max)
+	0 .. 9 ParseDigit!(int max)
 		throws
 	{
 		if (Position >= Length)
@@ -58,7 +58,7 @@ class DurationParser
 		return digit;
 	}
 
-	internal int Parse!(string s)
+	internal uint Parse!(string s)
 		throws
 	{
 		Source = s;
@@ -996,7 +996,7 @@ public class ASAPInfo
 #endif
 	}
 
-	static int AfterFF(byte[] module, int moduleLen, int currentOffset)
+	static uint AfterFF(byte[] module, int moduleLen, int currentOffset)
 		throws
 	{
 		while (currentOffset < moduleLen) {
@@ -1145,7 +1145,7 @@ public class ASAPInfo
 		return true;
 	}
 
-	static int ParseDec(byte[] module, int i, int argEnd, int minVal, int maxVal)
+	static ushort ParseDec(byte[] module, int i, int argEnd, int minVal, int maxVal)
 		throws
 	{
 		if (i < 0)
@@ -1164,7 +1164,7 @@ public class ASAPInfo
 		return r;
 	}
 
-	static int ParseHex(byte[] module, int i, int argEnd)
+	static ushort ParseHex(byte[] module, int i, int argEnd)
 		throws
 	{
 		if (i < 0)
@@ -1188,7 +1188,7 @@ public class ASAPInfo
 	}
 
 	/// Returns the number of milliseconds represented by the given string.
-	public static int ParseDuration(
+	public static uint ParseDuration(
 		/// Time in the `"mm:ss.xxx"` format.
 		string s)
 		throws
@@ -1408,7 +1408,7 @@ public class ASAPInfo
 		string ext)
 		=> IsOurPackedExt(PackExt(ext));
 
-	static int GuessPackedExt(byte[] module, int moduleLen)
+	static uint GuessPackedExt(byte[] module, int moduleLen)
 		throws
 	{
 		if (ValidateSap(module, moduleLen))
@@ -1860,7 +1860,7 @@ public class ASAPInfo
 		}
 	}
 
-	const int RmtInit = 0xc80;
+	internal const int RmtInit = 0xc80;
 
 	internal int GetRmtSapOffset(byte[] module, int moduleLen)
 	{
