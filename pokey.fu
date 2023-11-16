@@ -239,6 +239,7 @@ class Pokey
 		IirAcc = 0;
 		IirRate = 44100 * 6 / sampleRate;
 		SumDACInputs = 0;
+		SumDACOutputs = 0;
 		StartFrame();
 	}
 
