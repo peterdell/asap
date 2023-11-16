@@ -7082,6 +7082,7 @@ static void Pokey_Initialize(Pokey *self, int sampleRate)
 	self->iirAcc = 0;
 	self->iirRate = 264600 / sampleRate;
 	self->sumDACInputs = 0;
+	self->sumDACOutputs = 0;
 	Pokey_StartFrame(self);
 }
 
