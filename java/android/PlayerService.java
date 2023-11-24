@@ -218,12 +218,14 @@ public class PlayerService extends MediaBrowserService implements Runnable, Audi
 	{
 		// read file
 		String filename;
+		boolean loop;
 		byte[] module = new byte[ASAPInfo.MAX_MODULE_LENGTH];
 		int moduleLen = 0;
 		try {
 			InputStream stream;
 			if ("asma".equals(uri.getScheme())) {
 				filename = uri.getSchemeSpecificPart();
+				loop = false;
 				stream = getAssets().open(filename);
 			}
 			else {
@@ -242,6 +244,7 @@ public class PlayerService extends MediaBrowserService implements Runnable, Audi
 				finally {
 					cursor.close();
 				}
+				loop = true;
 				stream = getContentResolver().openInputStream(uri);
 			}
 
@@ -281,7 +284,7 @@ public class PlayerService extends MediaBrowserService implements Runnable, Audi
 			default:
 				break;
 			}
-			asap.playSong(song, info.getDuration(song));
+			asap.playSong(song, loop && songs == 1 ? -1 : info.getDuration(song));
 		}
 		catch (ASAPFormatException|ASAPArgumentException ex) {
 			showError(R.string.invalid_file);
