@@ -1,7 +1,7 @@
 ﻿<page title="News">
 	<release version="6.0.1" date="2023-11-17">
 		<ul>
-			<li>Fixed major audio distortions in ASAP 6.0.0.</li>
+			<li>Fixed severe audio distortions in ASAP 6.0.0.</li>
 			<li>Sample rate configurable in foobar2000, Winamp and XMPlay.</li>
 			<li>foobar2000 dark mode.</li>
 		</ul>
