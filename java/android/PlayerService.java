@@ -281,7 +281,7 @@ public class PlayerService extends MediaBrowserService implements Runnable, Audi
 			}
 			asap.playSong(song, info.getDuration(song));
 		}
-		catch (Exception ex) {
+		catch (ASAPFormatException|ASAPArgumentException ex) {
 			showError(R.string.invalid_file);
 			return false;
 		}
@@ -399,7 +399,7 @@ public class PlayerService extends MediaBrowserService implements Runnable, Audi
 			try {
 				asap.seek(pos);
 			}
-			catch (Exception ex) {
+			catch (ASAPFormatException ex) {
 			}
 			setPlaybackState(PlaybackState.STATE_PLAYING, asap.getPosition(), 1, PlaybackState.ACTION_PAUSE | COMMON_ACTIONS);
 		}
