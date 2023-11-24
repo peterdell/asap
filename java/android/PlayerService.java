@@ -134,32 +134,31 @@ public class PlayerService extends MediaBrowserService implements Runnable, Audi
 
 	private final ArrayList<Uri> playlist = new ArrayList<Uri>();
 
-	private void setPlaylist(String query)
-	{
-		playlist.clear();
-		if ("asma".equals(uri.getScheme())) {
-			for (FileInfo info : FileInfo.listIndex(this, query)) {
-				if (info != FileInfo.SHUFFLE_ALL)
-					playlist.add(Util.getAsmaUri(info.filename));
-			}
-			if (uri.getSchemeSpecificPart().isEmpty()) { // shuffle all
-				Collections.shuffle(playlist);
-				uri = playlist.get(0);
-			}
-		}
-		else
-			playlist.add(uri);
-	}
-
 	private boolean setSearchPlaylist(String query)
 	{
 		FileInfo[] infos = FileInfo.listIndex(this, query);
 		if (infos.length == 0)
 			return false;
 		playlist.clear();
-		for (FileInfo info : infos)
-			playlist.add(Util.getAsmaUri(info.filename));
+		for (FileInfo info : infos) {
+			if (info != FileInfo.SHUFFLE_ALL)
+				playlist.add(Util.getAsmaUri(info.filename));
+		}
 		return true;
+	}
+
+	private void setPlaylist(String query)
+	{
+		if ("asma".equals(uri.getScheme()) && setSearchPlaylist(query)) {
+			if (uri.getSchemeSpecificPart().isEmpty()) { // shuffle all
+				Collections.shuffle(playlist);
+				uri = playlist.get(0);
+			}
+		}
+		else {
+			playlist.clear();
+			playlist.add(uri);
+		}
 	}
 
 	private int getPlaylistIndex()
