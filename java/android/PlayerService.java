@@ -27,6 +27,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.SearchManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -133,13 +134,14 @@ public class PlayerService extends MediaBrowserService implements Runnable, Audi
 
 	private final ArrayList<Uri> playlist = new ArrayList<Uri>();
 
-	private void setPlaylist()
+	private void setPlaylist(String query)
 	{
 		playlist.clear();
 		if ("asma".equals(uri.getScheme())) {
-			FileInfo[] infos = FileInfo.listIndex(this, null);
-			for (int i = 1 /* skip "shuffle all" */; i < infos.length; i++)
-				playlist.add(Util.getAsmaUri(infos[i].filename));
+			for (FileInfo info : FileInfo.listIndex(this, query)) {
+				if (info != FileInfo.SHUFFLE_ALL)
+					playlist.add(Util.getAsmaUri(info.filename));
+			}
 			if (uri.getSchemeSpecificPart().isEmpty()) { // shuffle all
 				Collections.shuffle(playlist);
 				uri = playlist.get(0);
@@ -603,7 +605,7 @@ public class PlayerService extends MediaBrowserService implements Runnable, Audi
 			default:
 				break;
 			}
-			setPlaylist();
+			setPlaylist(intent.getStringExtra(SearchManager.QUERY));
 			setCommand(COMMAND_LOAD);
 			break;
 		case ACTION_PLAY:
