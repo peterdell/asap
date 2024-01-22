@@ -1,4 +1,15 @@
 ﻿<page title="News">
+	<release version="6.0.2" date="2024-01-22">
+		<ul>
+			<li>foobar2000 displays the sample rate in the status bar.</li>
+		</ul>
+		<ul title="Android">
+			<li>Fixed crash on playback start on Android 14.</li>
+			<li>Next/previous within search results, not the whole archive.</li>
+			<li>Loops are played for files selected from the file picker.</li>
+		</ul>
+	</release>
+
 	<release version="6.0.1" date="2023-11-17">
 		<ul>
 			<li>Fixed severe audio distortions in ASAP 6.0.0.</li>
