@@ -1450,10 +1450,8 @@ public class ASAPInfo
 			}
 			if (ext < 0)
 				throw ASAPFormatException("Filename has no extension");
-			ext -= basename;
-			if (ext > MaxTextLength)
-				ext = MaxTextLength;
 #if !OPENCL
+			ext = Math.Min(ext - basename, MaxTextLength);
 			Filename = filename.Substring(basename, ext);
 #endif
 			ext = GetPackedExt(filename);

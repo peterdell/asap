@@ -4,6 +4,11 @@
 #include <string.h>
 #include "asap.h"
 
+static int FuInt_Min(int x, int y)
+{
+	return x < y ? x : y;
+}
+
 static void FuString_Assign(char **str, char *value)
 {
 	free(*str);
@@ -2648,9 +2653,9 @@ static int ASAP_GenerateAt(ASAP *self, uint8_t *buffer, int bufferOffset, int bu
 	int blockShift = ASAPInfo_GetChannels(&self->moduleInfo) - (format == ASAPSampleFormat_U8 ? 1 : 0);
 	int bufferBlocks = bufferLen >> blockShift;
 	if (self->currentDuration > 0) {
-		int totalBlocks = ASAP_MillisecondsToBlocks(self, self->currentDuration);
-		if (bufferBlocks > totalBlocks - self->blocksPlayed)
-			bufferBlocks = totalBlocks - self->blocksPlayed;
+		int remainingBlocks = ASAP_MillisecondsToBlocks(self, self->currentDuration) - self->blocksPlayed;
+		if (bufferBlocks > remainingBlocks)
+			bufferBlocks = remainingBlocks;
 	}
 	int block = 0;
 	for (;;) {
@@ -4017,9 +4022,7 @@ bool ASAPInfo_Load(ASAPInfo *self, const char *filename, uint8_t const *module, 
 		}
 		if (ext < 0)
 			return false;
-		ext -= basename;
-		if (ext > 127)
-			ext = 127;
+		ext = FuInt_Min(ext - basename, 127);
 		FuString_Assign(&self->filename, FuString_Substring(filename + basename, ext));
 		ext = ASAPInfo_GetPackedExt(filename);
 	}
@@ -4533,15 +4536,13 @@ static bool ASAPNativeModuleWriter_Write(ASAPNativeModuleWriter *self, const ASA
 			return false;
 		int songEnd = 7 + ASAPNativeModuleWriter_GetWord(self, 4) - startAddr;
 		while (songOffset + 3 < songEnd) {
-			int nextSongOffset = songOffset + ASAPNativeModuleWriter_GetByte(self, 9) - '0';
+			int nextSongOffset = FuInt_Min(songOffset + ASAPNativeModuleWriter_GetByte(self, 9) - '0', songEnd);
 			if (ASAPNativeModuleWriter_GetByte(self, songOffset) == 254) {
 				if (!ASAPNativeModuleWriter_Copy(self, songOffset + 2))
 					return false;
 				if (!ASAPNativeModuleWriter_RelocateWords(self, 1))
 					return false;
 			}
-			if (nextSongOffset > songEnd)
-				nextSongOffset = songEnd;
 			if (!ASAPNativeModuleWriter_Copy(self, nextSongOffset))
 				return false;
 			songOffset = nextSongOffset;
