@@ -269,10 +269,10 @@ public class AATRRecursiveLister
 			if (filename == null) {
 				if (Depth == 0)
 					return null;
-				nint i = DirectoryPath.Length - 1;
-				while (--i >= 0 && DirectoryPath[i] != '/') {
+				nint i = DirectoryPath.Length;
+				while (--i > 0 && DirectoryPath[i - 1] != '/') {
 				}
-				DirectoryPath = DirectoryPath.Substring(0, i + 1);
+				DirectoryPath = DirectoryPath.Substring(0, i);
 				Depth--;
 			}
 			else if (directory.IsEntryDirectory()) {
