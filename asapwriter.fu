@@ -636,8 +636,8 @@ public class ASAPWriter
 
 	static int FormatXexInfoText(byte[]! dest, int destLen, int endColumn, string src, bool author)
 	{
-		int srcLen = src.Length;
-		for (int srcOffset = 0; srcOffset < srcLen; ) {
+		nint srcLen = src.Length;
+		for (nint srcOffset = 0; srcOffset < srcLen; ) {
 			int c = src[srcOffset++];
 			if (c == ' ') {
 				if (author && srcOffset < srcLen && src[srcOffset] == '&') {
@@ -651,7 +651,7 @@ public class ASAPWriter
 						continue;
 					}
 				}
-				int wordLen;
+				nint wordLen;
 				for (wordLen = 0; srcOffset + wordLen < srcLen && src[srcOffset + wordLen] != ' '; wordLen++) {
 				}
 				if (wordLen <= XexInfoCharactersPerLine && destLen % XexInfoCharactersPerLine + 1 + wordLen > XexInfoCharactersPerLine) {

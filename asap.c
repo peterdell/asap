@@ -1,5 +1,6 @@
 // Generated automatically with "fut". Do not edit.
 #include <math.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "asap.h"
@@ -15,7 +16,7 @@ static void FuString_Assign(char **str, char *value)
 	*str = value;
 }
 
-static char *FuString_Substring(const char *str, int len)
+static char *FuString_Substring(const char *str, size_t len)
 {
 	char *p = malloc(len + 1);
 	memcpy(p, str, len);
@@ -2590,7 +2591,7 @@ static void ASAP_PutLittleEndians(uint8_t *buffer, int offset, int value1, int v
 
 static int ASAP_PutWavMetadata(uint8_t *buffer, int offset, int fourCC, const char *value)
 {
-	int len = (int) strlen(value);
+	int len = (ptrdiff_t) strlen(value);
 	if (len > 0) {
 		ASAP_PutLittleEndians(buffer, offset, fourCC, (len | 1) + 1);
 		offset += 8;
@@ -2731,7 +2732,7 @@ static int DurationParser_Parse(DurationParser *self, const char *s)
 {
 	self->source = s;
 	self->position = 0;
-	self->length = (int) strlen(s);
+	self->length = (ptrdiff_t) strlen(s);
 	int result = DurationParser_ParseDigit(self, 9);
 	if (result == -1)
 		return -1;
@@ -3943,13 +3944,13 @@ static bool ASAPInfo_ParseSap(ASAPInfo *self, uint8_t const *module, int moduleL
 
 static int ASAPInfo_PackExt(const char *ext)
 {
-	return (int) strlen(ext) == 2 && ext[0] <= 'z' && ext[1] <= 'z' ? ext[0] | ext[1] << 8 | 2105376 : (int) strlen(ext) == 3 && ext[0] <= 'z' && ext[1] <= 'z' && ext[2] <= 'z' ? ext[0] | ext[1] << 8 | ext[2] << 16 | 2105376 : 0;
+	return (ptrdiff_t) strlen(ext) == 2 && ext[0] <= 'z' && ext[1] <= 'z' ? ext[0] | ext[1] << 8 | 2105376 : (ptrdiff_t) strlen(ext) == 3 && ext[0] <= 'z' && ext[1] <= 'z' && ext[2] <= 'z' ? ext[0] | ext[1] << 8 | ext[2] << 16 | 2105376 : 0;
 }
 
 static int ASAPInfo_GetPackedExt(const char *filename)
 {
 	int ext = 0;
-	for (int i = (int) strlen(filename); --i > 0;) {
+	for (ptrdiff_t i = (ptrdiff_t) strlen(filename); --i > 0;) {
 		int c = filename[i];
 		if (c <= ' ' || c > 'z')
 			return 0;
@@ -4008,22 +4009,21 @@ bool ASAPInfo_Load(ASAPInfo *self, const char *filename, uint8_t const *module, 
 {
 	int ext;
 	if (filename != NULL) {
-		int len = (int) strlen(filename);
-		int basename = 0;
-		ext = -1;
-		for (int i = len; --i >= 0;) {
+		ptrdiff_t basename = 0;
+		ptrdiff_t extPos = -1;
+		for (ptrdiff_t i = (ptrdiff_t) strlen(filename); --i >= 0;) {
 			int c = filename[i];
 			if (c == '/' || c == '\\') {
 				basename = i + 1;
 				break;
 			}
 			if (c == '.')
-				ext = i;
+				extPos = i;
 		}
-		if (ext < 0)
+		if (extPos < 0)
 			return false;
-		ext = FuInt_Min(ext - basename, 127);
-		FuString_Assign(&self->filename, FuString_Substring(filename + basename, ext));
+		extPos = FuInt_Min(extPos - basename, 127);
+		FuString_Assign(&self->filename, FuString_Substring(filename + basename, extPos));
 		ext = ASAPInfo_GetPackedExt(filename);
 	}
 	else {
@@ -4086,7 +4086,7 @@ bool ASAPInfo_Load(ASAPInfo *self, const char *filename, uint8_t const *module, 
 
 static bool ASAPInfo_CheckValidText(const char *s)
 {
-	if ((int) strlen(s) > 127)
+	if ((ptrdiff_t) strlen(s) > 127)
 		return false;
 	for (const char *c = s; *c != '\0'; c++)
 		if (!ASAPInfo_IsValidChar(*c))
@@ -4140,7 +4140,7 @@ bool ASAPInfo_SetDate(ASAPInfo *self, const char *value)
 
 static int ASAPInfo_CheckDate(const ASAPInfo *self)
 {
-	int n = (int) strlen(self->date);
+	int n = (ptrdiff_t) strlen(self->date);
 	switch (n) {
 	case 4:
 	case 7:
@@ -5286,8 +5286,8 @@ static int ASAPWriter_PadXexInfo(uint8_t *dest, int offset, int endColumn)
 
 static int ASAPWriter_FormatXexInfoText(uint8_t *dest, int destLen, int endColumn, const char *src, bool author)
 {
-	int srcLen = (int) strlen(src);
-	for (int srcOffset = 0; srcOffset < srcLen;) {
+	ptrdiff_t srcLen = (ptrdiff_t) strlen(src);
+	for (ptrdiff_t srcOffset = 0; srcOffset < srcLen;) {
 		int c = src[srcOffset++];
 		if (c == ' ') {
 			if (author && srcOffset < srcLen && src[srcOffset] == '&') {
@@ -5301,7 +5301,7 @@ static int ASAPWriter_FormatXexInfoText(uint8_t *dest, int destLen, int endColum
 					continue;
 				}
 			}
-			int wordLen;
+			ptrdiff_t wordLen;
 			for (wordLen = 0; srcOffset + wordLen < srcLen && src[srcOffset + wordLen] != ' '; wordLen++) {
 			}
 			if (wordLen <= 32 && destLen % 32 + 1 + wordLen > 32) {
