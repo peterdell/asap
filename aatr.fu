@@ -283,9 +283,7 @@ public class AATRRecursiveLister
 				Directories[++Depth].Open(directory);
 			}
 			else {
-				// workaround "FilePath = DirectoryPath + filename;" unsupported by cito
-				FilePath = DirectoryPath;
-				FilePath += filename;
+				FilePath = DirectoryPath + filename;
 				return FilePath;
 			}
 		}
