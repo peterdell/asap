@@ -10,6 +10,11 @@ static int FuInt_Min(int x, int y)
 	return x < y ? x : y;
 }
 
+static ptrdiff_t FuNInt_Min(ptrdiff_t x, ptrdiff_t y)
+{
+	return x < y ? x : y;
+}
+
 static void FuString_Assign(char **str, char *value)
 {
 	free(*str);
@@ -4022,7 +4027,7 @@ bool ASAPInfo_Load(ASAPInfo *self, const char *filename, uint8_t const *module, 
 		}
 		if (extPos < 0)
 			return false;
-		extPos = FuInt_Min(extPos - basename, 127);
+		extPos = FuNInt_Min(extPos - basename, 127);
 		FuString_Assign(&self->filename, FuString_Substring(filename + basename, extPos));
 		ext = ASAPInfo_GetPackedExt(filename);
 	}
