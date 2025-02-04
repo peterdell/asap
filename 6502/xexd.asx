@@ -14,7 +14,6 @@ main
 	ldx	#29
 	sta:rpl	^00,x-
 	ert	*!=$13a
-	sta	^2e
 	ldx	#$0f
 init_pokey_1
 	sta	$d210,x
