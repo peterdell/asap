@@ -147,7 +147,7 @@ static void PokeyChannel_Slope(PokeyChannel *self, Pokey *pokey, const PokeyPair
 
 static void PokeyChannel_DoTick(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int ch);
 
-static void PokeyChannel_DoStimer(PokeyChannel *self, int cycle);
+static void PokeyChannel_DoStimer(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int reload);
 
 static void PokeyChannel_SetMute(PokeyChannel *self, bool enable, int mask, int cycle);
 
@@ -6962,10 +6962,14 @@ static void PokeyChannel_DoTick(PokeyChannel *self, Pokey *pokey, const PokeyPai
 	PokeyChannel_Slope(self, pokey, pokeys, cycle);
 }
 
-static void PokeyChannel_DoStimer(PokeyChannel *self, int cycle)
+static void PokeyChannel_DoStimer(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int reload)
 {
 	if (self->tickCycle != 8388608)
-		self->tickCycle = cycle + self->periodCycles;
+		self->tickCycle = cycle + reload;
+	if (self->out != 0) {
+		self->out = 0;
+		PokeyChannel_Slope(self, pokey, pokeys, cycle);
+	}
 }
 
 static void PokeyChannel_SetMute(PokeyChannel *self, bool enable, int mask, int cycle)
@@ -7304,8 +7308,11 @@ static int Pokey_Poke(Pokey *self, const PokeyPair *pokeys, int addr, int data, 
 		Pokey_InitMute(self, cycle);
 		break;
 	case 9:
-		for (int c = 0; c < 4; c++)
-			PokeyChannel_DoStimer(self->channels + c, cycle);
+		Pokey_GenerateUntilCycle(self, pokeys, cycle);
+		PokeyChannel_DoStimer(&self->channels[0], self, pokeys, cycle, (self->audctl & 16) == 0 ? self->channels[0].periodCycles : self->reloadCycles1);
+		PokeyChannel_DoStimer(&self->channels[1], self, pokeys, cycle, self->channels[1].periodCycles);
+		PokeyChannel_DoStimer(&self->channels[2], self, pokeys, cycle, (self->audctl & 8) == 0 ? self->channels[2].periodCycles : self->reloadCycles3);
+		PokeyChannel_DoStimer(&self->channels[3], self, pokeys, cycle, self->channels[3].periodCycles);
 		break;
 	case 14:
 		self->irqst |= data ^ 255;
