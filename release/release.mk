@@ -44,12 +44,12 @@ release/foo_asap-$(VERSION).fb2k-component: win32/foo_asap.dll win32/x64/foo_asa
 	$(DO)$(RM) $@ && $(SEVENZIP) -tzip $@ -imr!./win32/foo_asap.dll
 
 release/asap-$(VERSION)-macos.dmg: release/osx/libasap_plugin.dylib release/osx/plugins release/osx/asapconv release/osx/bin
-ifdef PORK_CODESIGNING_IDENTITY
-	codesign --options runtime -f -s $(PORK_CODESIGNING_IDENTITY) release/osx/libasap_plugin.dylib
-	codesign --options runtime -f -s $(PORK_CODESIGNING_IDENTITY) release/osx/asapconv
+ifdef FOX_CODESIGNING_IDENTITY
+	codesign --options runtime -f -s $(FOX_CODESIGNING_IDENTITY) release/osx/libasap_plugin.dylib
+	codesign --options runtime -f -s $(FOX_CODESIGNING_IDENTITY) release/osx/asapconv
 endif
 	$(DO)hdiutil create -volname asap-$(VERSION)-macos -srcfolder release/osx -format UDBZ -fs HFS+ -imagekey bzip2-level=3 -ov $@
-	/Applications/Xcode.app/Contents/Developer/usr/bin/notarytool submit --wait --keychain-profile recoilnotarization $@
+	/Applications/Xcode.app/Contents/Developer/usr/bin/notarytool submit --wait --keychain-profile foxnotary $@
 
 release/osx/libasap_plugin.dylib: libasap_plugin.dylib
 	$(DO)strip -o $@ -x $< && chmod 644 $@
@@ -87,9 +87,9 @@ rpm64:
 .PHONY: rpm64
 
 mac:
-	scp release/asap-$(VERSION).tar.gz mac:.
-	ssh mac 'security unlock-keychain ~/Library/Keychains/login.keychain && rm -rf asap-$(VERSION) && tar xf asap-$(VERSION).tar.gz && make -C asap-$(VERSION) release/asap-$(VERSION)-macos.dmg'
-	scp mac:asap-$(VERSION)/release/asap-$(VERSION)-macos.dmg release/
+	scp release/asap-$(VERSION).tar.gz wiesmac:.
+	ssh wiesmac 'security unlock-keychain login.keychain && rm -rf asap-$(VERSION) && tar xf asap-$(VERSION).tar.gz && make -C asap-$(VERSION) release/asap-$(VERSION)-macos.dmg'
+	scp wiesmac:asap-$(VERSION)/release/asap-$(VERSION)-macos.dmg release/
 .PHONY: mac
 
 release/COPYING.txt: $(srcdir)COPYING
