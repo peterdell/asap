@@ -415,7 +415,7 @@ static uint8_t const *ASAP6502_GetPlayerRoutine(const ASAPInfo *info);
 struct DurationParser {
 	const char *source;
 	int position;
-	int length;
+	ptrdiff_t length;
 };
 
 static int DurationParser_ParseDigit(DurationParser *self, int max);

@@ -55,7 +55,7 @@ class DurationParser
 {
 	string? Source;
 	int Position;
-	int Length;
+	nint Length;
 
 	0 .. 9 ParseDigit!(int max)
 		throws ASAPFormatException
