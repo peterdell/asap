@@ -130,6 +130,7 @@ int main(int argc, char **argv)
 		int duration = ASAPInfo_GetDuration(info, song);
 		if (duration < 0)
 			duration = 180 * 1000;
+		fprintf(stderr, "Converting to %s\n", output_file);
 
 		cl_mem filename_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, strlen(input_file) + 1, const_cast<char *>(input_file), &err);
 		check_error(err);
