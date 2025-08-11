@@ -75,7 +75,16 @@ int main(int argc, char **argv)
 	cl_program program = clCreateProgramWithSource(context, 1, &source, nullptr, &err);
 	check_error(err);
 
-	check_error(clBuildProgram(program, 1, &device, "-cl-std=CL2.0", nullptr, nullptr));
+	err = clBuildProgram(program, 1, &device, "-cl-std=CL2.0", nullptr, nullptr);
+	if (err == CL_BUILD_PROGRAM_FAILURE) {
+		check_error(clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &size));
+		char *log = static_cast<char *>(malloc(size));
+		check_error(clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, size, log, nullptr));
+		fprintf(stderr, "OpenCL build error:\n%s", log);
+		free(log);
+		return 1;
+	}
+	check_error(err);
 
 	cl_kernel kernel;
 	check_error(clCreateKernelsInProgram(program, 1, &kernel, nullptr));
