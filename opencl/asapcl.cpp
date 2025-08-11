@@ -86,8 +86,8 @@ int main(int argc, char **argv)
 	}
 	check_error(err);
 
-	cl_kernel kernel;
-	check_error(clCreateKernelsInProgram(program, 1, &kernel, nullptr));
+	cl_kernel kernel = clCreateKernel(program, "asap2wav", &err);
+	check_error(err);
 
 	cl_command_queue queue = clCreateCommandQueueWithProperties(context, device, nullptr, &err);
 	check_error(err);
