@@ -1,7 +1,7 @@
 /*
  * asapcl.cpp - converter of ASAP-supported formats to WAV files
  *
- * Copyright (C) 2021  Piotr Fusik
+ * Copyright (C) 2021-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 	cl_program program = clCreateProgramWithSource(context, 1, &source, nullptr, &err);
 	check_error(err);
 
-	check_error(clBuildProgram(program, 1, &device, "-cl-std=CL2.0 -cl-opt-disable", nullptr, nullptr));
+	check_error(clBuildProgram(program, 1, &device, "-cl-std=CL2.0", nullptr, nullptr));
 
 	cl_kernel kernel;
 	check_error(clCreateKernelsInProgram(program, 1, &kernel, nullptr));
