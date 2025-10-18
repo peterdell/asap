@@ -1,7 +1,7 @@
 /*
  * asapconv.c - converter of ASAP-supported formats
  *
- * Copyright (C) 2005-2022  Piotr Fusik
+ * Copyright (C) 2005-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -23,6 +23,7 @@
 
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -184,7 +185,7 @@ static void apply_tags(const char *input_file, ASAPInfo *info)
 	}
 }
 
-static ASAP *load_module(const char *input_file, const unsigned char *module, int module_len)
+static ASAP *load_module(const char *input_file, const uint8_t *module, int module_len)
 {
 	ASAP *asap = ASAP_New();
 	if (asap == NULL)
@@ -197,7 +198,7 @@ static ASAP *load_module(const char *input_file, const unsigned char *module, in
 	return asap;
 }
 
-static FILE *open_output_file(const char *input_file, const unsigned char *module, int module_len, const ASAPInfo *info, bool allow_file_per_song)
+static FILE *open_output_file(const char *input_file, const uint8_t *module, int module_len, const ASAPInfo *info, bool allow_file_per_song)
 {
 	const char *output_ext = strrchr(arg_output, '.');
 	FILE *fp = NULL;
@@ -338,7 +339,7 @@ static int play_song(const char *input_file, ASAP *asap)
 	return duration;
 }
 
-static void write_output_file(FILE *fp, unsigned char *buffer, int n_bytes)
+static void write_output_file(FILE *fp, uint8_t *buffer, int n_bytes)
 {
 	if (fwrite(buffer, 1, n_bytes, fp) != n_bytes) {
 		if (fp != stdout)
@@ -355,14 +356,14 @@ static void close_output_file(FILE *fp)
 	}
 }
 
-static void convert_to_wav(const char *input_file, const unsigned char *module, int module_len, bool output_header)
+static void convert_to_wav(const char *input_file, const uint8_t *module, int module_len, bool output_header)
 {
 	ASAP *asap = load_module(input_file, module, module_len);
 	FILE *fp;
 
 	while ((fp = open_output_file(input_file, module, module_len, ASAP_GetInfo(asap), true)) != NULL) {
 		play_song(input_file, asap);
-		unsigned char buffer[8192];
+		uint8_t buffer[8192];
 		int n_bytes;
 		if (output_header) {
 			n_bytes = ASAP_GetWavHeader(asap, buffer, arg_sample_format, arg_tag);
@@ -390,8 +391,8 @@ typedef int (*plame_set_num_samples)(lame_global_flags *, unsigned long);
 typedef int (*plame_set_in_samplerate)(lame_global_flags *, int);
 typedef int (*plame_set_num_channels)(lame_global_flags *, int);
 typedef int (*plame_init_params)(lame_global_flags *);
-typedef int (*plame_encode_buffer_interleaved)(lame_global_flags *, short int[], int, unsigned char *, int);
-typedef int (*plame_encode_flush)(lame_global_flags *, unsigned char *, int);
+typedef int (*plame_encode_buffer_interleaved)(lame_global_flags *, short int[], int, uint8_t *, int);
+typedef int (*plame_encode_flush)(lame_global_flags *, uint8_t *, int);
 typedef int (*plame_close)(lame_global_flags *);
 typedef int (*pid3tag_init)(lame_global_flags *);
 typedef int (*pid3tag_set_title)(lame_global_flags *, const char *);
@@ -427,7 +428,7 @@ static FARPROC lame_proc(HMODULE lame_dll, const char *name)
 
 #endif
 
-static void convert_to_mp3(const char *input_file, const unsigned char *module, int module_len)
+static void convert_to_mp3(const char *input_file, const uint8_t *module, int module_len)
 {
 	ASAP *asap = load_module(input_file, module, module_len);
 	const ASAPInfo *info = ASAP_GetInfo(asap);
@@ -482,9 +483,9 @@ static void convert_to_mp3(const char *input_file, const unsigned char *module, 
 			id3tag_set_genre(lame, "Electronic");
 		}
 
-		unsigned char buffer[8192];
+		uint8_t buffer[8192];
 		int n_bytes;
-		unsigned char mp3buf[4096 * 5 / 4 + 7200]; /* it would be possible to reuse "buffer" instead */
+		uint8_t mp3buf[4096 * 5 / 4 + 7200]; /* it would be possible to reuse "buffer" instead */
 		int mp3_bytes;
 
 		do {
@@ -515,7 +516,7 @@ static void convert_to_mp3(const char *input_file, const unsigned char *module, 
 
 #endif /* HAVE_LIBMP3LAME */
 
-static void convert_to_module(const char *input_file, const unsigned char *module, int module_len, bool output_xex)
+static void convert_to_module(const char *input_file, const uint8_t *module, int module_len, bool output_xex)
 {
 	const char *input_ext = strrchr(input_file, '.');
 	if (input_ext == NULL)
@@ -544,7 +545,7 @@ static void convert_to_module(const char *input_file, const unsigned char *modul
 			ASAPInfo_SetDefaultSong(info, current_song);
 		if (arg_duration >= 0)
 			ASAPInfo_SetDuration(info, current_song, arg_duration);
-		unsigned char output[ASAPInfo_MAX_MODULE_LENGTH];
+		uint8_t output[ASAPInfo_MAX_MODULE_LENGTH];
 		ASAPWriter_SetOutput(writer, output, 0, sizeof(output));
 		int output_len = ASAPWriter_Write(writer, output_file, info, module, module_len, arg_tag);
 		if (output_len < 0)
@@ -564,7 +565,7 @@ static void process_file(const char *input_file)
 	FILE *fp = fopen(input_file, "rb");
 	if (fp == NULL)
 		fatal_error("cannot open %s", input_file);
-	static unsigned char module[ASAPInfo_MAX_MODULE_LENGTH];
+	static uint8_t module[ASAPInfo_MAX_MODULE_LENGTH];
 	int module_len = fread(module, 1, sizeof(module), fp);
 	fclose(fp);
 
