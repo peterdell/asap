@@ -508,10 +508,8 @@ const char *ASAPInfo_GetExtDescription(const char *ext);
  * For native modules it simply returns their extension.
  * For the SAP format it attempts to detect the original module format.
  * @param self This <code>ASAPInfo</code>.
- * @param module Contents of the file.
- * @param moduleLen Length of the file.
  */
-const char *ASAPInfo_GetOriginalModuleExt(const ASAPInfo *self, uint8_t const *module, int moduleLen);
+const char *ASAPInfo_GetOriginalModuleExt(const ASAPInfo *self);
 
 ASAPWriter *ASAPWriter_New(void);
 void ASAPWriter_Delete(ASAPWriter *self);
@@ -526,10 +524,8 @@ void ASAPWriter_Delete(ASAPWriter *self);
  * Returns the number of extensions written to <code>exts</code>.
  * @param exts Receives filename extensions without the leading dot.
  * @param info File information.
- * @param module Contents of the file.
- * @param moduleLen Length of the file.
  */
-int ASAPWriter_GetSaveExts(const char **exts, const ASAPInfo *info, uint8_t const *module, int moduleLen);
+int ASAPWriter_GetSaveExts(const char **exts, const ASAPInfo *info);
 
 /**
  * Maximum length of text representation of a duration.

@@ -1,7 +1,7 @@
 /*
  * xmp-asap.c - ASAP plugin for XMPlay
  *
- * Copyright (C) 2010-2024  Piotr Fusik
+ * Copyright (C) 2010-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -196,7 +196,7 @@ static void WINAPI ASAP_GetGeneralInfo(char *buf)
 	const char *s = ASAPInfo_GetDate(info);
 	if (s[0] != '\0')
 		buf += sprintf(buf, "Date\t%s\r", s);
-	s = ASAPInfo_GetOriginalModuleExt(info, module, module_len);
+	s = ASAPInfo_GetOriginalModuleExt(info);
 	if (s != NULL)
 		buf += sprintf(buf, "Composed in\t%s\r", ASAPInfo_GetExtDescription(s));
 	*buf = '\0';

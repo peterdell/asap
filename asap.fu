@@ -33,7 +33,7 @@ class ASAPMptSamples
 	internal int ContentLength;
 	internal bool Is15kHz;
 
-	bool DoLoad!(ASAPFileLoader loader, string moduleFilename, int moduleFilenameLength, int extNumber)
+	bool DoLoad!(ASAPFileLoader loader, string moduleFilename, nint moduleFilenameLength, int extNumber)
 	{
 		string extInitial = moduleFilename[moduleFilenameLength - 3] == 'M' ? "D" : "d";
 		string() filename = $"{moduleFilename.Substring(0, moduleFilenameLength - 3)}{extInitial}{extNumber}";
@@ -62,7 +62,7 @@ class ASAPMptSamples
 	public void Load!(ASAPFileLoader loader, string moduleFilename, byte[]! memory)
 		throws ASAPFormatException
 	{
-		int moduleFilenameLength = moduleFilename.Length;
+		nint moduleFilenameLength = moduleFilename.Length;
 		if (moduleFilename[moduleFilenameLength - 1] == '1'
 		 && DoLoad(loader, moduleFilename, moduleFilenameLength, 15))
 			Is15kHz = true;

@@ -1,7 +1,7 @@
 /*
  * info_dlg.c - file information dialog box
  *
- * Copyright (C) 2007-2022  Piotr Fusik
+ * Copyright (C) 2007-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -171,7 +171,7 @@ static void updateTech(void)
 {
 	char buf[16000];
 	char *p = buf;
-	const char *ext = ASAPInfo_GetOriginalModuleExt(edited_info, saved_module, saved_module_len);
+	const char *ext = ASAPInfo_GetOriginalModuleExt(edited_info);
 	if (ext != NULL)
 		p += sprintf(p, "Composed in %s\r\n", ASAPInfo_GetExtDescription(ext));
 	int i = ASAPInfo_GetSongs(edited_info);
@@ -466,7 +466,7 @@ static bool saveInfo(void)
 static void setSaveFilters(LPTSTR p)
 {
 	const char *exts[ASAPWriter_MAX_SAVE_EXTS];
-	int exts_len = ASAPWriter_GetSaveExts(exts, edited_info, saved_module, saved_module_len);
+	int exts_len = ASAPWriter_GetSaveExts(exts, edited_info);
 	for (int i = 0; i < exts_len; i++) {
 		const char *ext = exts[i];
 		p += _stprintf(p, _T("%s (*.%s)"), ASAPInfo_GetExtDescription(ext), ext) + 1;

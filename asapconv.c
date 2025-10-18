@@ -198,7 +198,7 @@ static ASAP *load_module(const char *input_file, const uint8_t *module, int modu
 	return asap;
 }
 
-static FILE *open_output_file(const char *input_file, const uint8_t *module, int module_len, const ASAPInfo *info, bool allow_file_per_song)
+static FILE *open_output_file(const char *input_file, const ASAPInfo *info, bool allow_file_per_song)
 {
 	const char *output_ext = strrchr(arg_output, '.');
 	FILE *fp = NULL;
@@ -250,7 +250,7 @@ static FILE *open_output_file(const char *input_file, const uint8_t *module, int
 				tag = ASAPInfo_GetDate(info);
 				break;
 			case 'e':
-				tag = ASAPInfo_GetOriginalModuleExt(info, module, module_len);
+				tag = ASAPInfo_GetOriginalModuleExt(info);
 				if (tag == NULL)
 					tag = "unknown";
 				break;
@@ -361,7 +361,7 @@ static void convert_to_wav(const char *input_file, const uint8_t *module, int mo
 	ASAP *asap = load_module(input_file, module, module_len);
 	FILE *fp;
 
-	while ((fp = open_output_file(input_file, module, module_len, ASAP_GetInfo(asap), true)) != NULL) {
+	while ((fp = open_output_file(input_file, ASAP_GetInfo(asap), true)) != NULL) {
 		play_song(input_file, asap);
 		uint8_t buffer[8192];
 		int n_bytes;
@@ -447,7 +447,7 @@ static void convert_to_mp3(const char *input_file, const uint8_t *module, int mo
 #endif
 
 	FILE *fp;
-	while ((fp = open_output_file(input_file, module, module_len, info, true)) != NULL) {
+	while ((fp = open_output_file(input_file, info, true)) != NULL) {
 		int duration = play_song(input_file, asap);
 		lame_global_flags *lame = lame_init();
 		if (lame == NULL)
@@ -540,7 +540,7 @@ static void convert_to_module(const char *input_file, const uint8_t *module, int
 		ASAPInfo_SetMusicAddress(info, arg_music_address);
 
 	FILE *fp;
-	while ((fp = open_output_file(input_file, module, module_len, info, output_xex)) != NULL) {
+	while ((fp = open_output_file(input_file, info, output_xex)) != NULL) {
 		if (output_xex)
 			ASAPInfo_SetDefaultSong(info, current_song);
 		if (arg_duration >= 0)

@@ -100,7 +100,7 @@ struct ASAPMptSamples {
 	bool is15kHz;
 };
 
-static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, int moduleFilenameLength, int extNumber);
+static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, ptrdiff_t moduleFilenameLength, int extNumber);
 
 static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, uint8_t *memory);
 
@@ -296,6 +296,7 @@ struct ASAPInfo {
 	bool loops[32];
 	bool ntsc;
 	ASAPModuleType type;
+	ASAPModuleType originalType;
 	int fastplay;
 	int music;
 	int init;
@@ -369,6 +370,8 @@ static int ASAPInfo_ParseHex(uint8_t const *module, int i, int argEnd);
 
 static bool ASAPInfo_ValidateSap(uint8_t const *module, int moduleLen);
 
+static int ASAPInfo_GetRmtSapOffset(const ASAPInfo *self, uint8_t const *module, int moduleLen);
+
 static bool ASAPInfo_ParseSap(ASAPInfo *self, uint8_t const *module, int moduleLen);
 
 static int ASAPInfo_PackExt(const char *ext);
@@ -384,10 +387,6 @@ static bool ASAPInfo_CheckValidText(const char *s);
 static int ASAPInfo_CheckDate(const ASAPInfo *self);
 
 static int ASAPInfo_GetTwoDateDigits(const ASAPInfo *self, int i);
-
-static int ASAPInfo_GetRmtSapOffset(const ASAPInfo *self, uint8_t const *module, int moduleLen);
-
-static ASAPModuleType ASAPInfo_GetOriginalModuleType(const ASAPInfo *self, uint8_t const *module, int moduleLen);
 
 /**
  * Atari 8-bit chip music emulator.
@@ -2186,7 +2185,7 @@ static const uint8_t FuResource_xexinfo_obx[178] = {
 	232, 153, 0, 255, 104, 153, 0, 254, 104, 153, 0, 253, 200, 208, 223, 32,
 	115, 252 };
 
-static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, int moduleFilenameLength, int extNumber)
+static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, ptrdiff_t moduleFilenameLength, int extNumber)
 {
 	const char *extInitial = moduleFilename[moduleFilenameLength - 3] == 'M' ? "D" : "d";
 	char *filename = FuString_Format("%.*s%s%d", moduleFilenameLength - 3, moduleFilename, extInitial, extNumber);
@@ -2224,7 +2223,7 @@ static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *lo
 
 static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, uint8_t *memory)
 {
-	int moduleFilenameLength = (ptrdiff_t) strlen(moduleFilename);
+	ptrdiff_t moduleFilenameLength = (ptrdiff_t) strlen(moduleFilename);
 	if (moduleFilename[moduleFilenameLength - 1] == '1' && ASAPMptSamples_DoLoad(self, loader, moduleFilename, moduleFilenameLength, 15))
 		self->is15kHz = true;
 	else if (ASAPMptSamples_DoLoad(self, loader, moduleFilename, moduleFilenameLength, 8))
@@ -3072,7 +3071,7 @@ static bool ASAPInfo_ParseCmc(ASAPInfo *self, uint8_t const *module, int moduleL
 {
 	if (moduleLen < 774)
 		return false;
-	self->type = type;
+	self->originalType = self->type = type;
 	if (!ASAPInfo_ParseModule(self, module, moduleLen))
 		return false;
 	int lastPos = 84;
@@ -3147,7 +3146,7 @@ static bool ASAPInfo_ParseDlt(ASAPInfo *self, uint8_t const *module, int moduleL
 {
 	if (moduleLen != 11270 && moduleLen != 11271)
 		return false;
-	self->type = ASAPModuleType_DLT;
+	self->originalType = self->type = ASAPModuleType_DLT;
 	if (!ASAPInfo_ParseModule(self, module, moduleLen))
 		return false;
 	if (self->music != 8192)
@@ -3239,7 +3238,7 @@ static bool ASAPInfo_ParseMpt(ASAPInfo *self, uint8_t const *module, int moduleL
 {
 	if (moduleLen < 464)
 		return false;
-	self->type = type;
+	self->originalType = self->type = type;
 	if (!ASAPInfo_ParseModule(self, module, moduleLen))
 		return false;
 	int track0Addr = ASAPInfo_GetWord(module, 2) + 458;
@@ -3452,7 +3451,7 @@ static bool ASAPInfo_ParseRmt(ASAPInfo *self, uint8_t const *module, int moduleL
 	int perFrame = module[12];
 	if (perFrame < 1 || perFrame > 4)
 		return false;
-	self->type = ASAPModuleType_RMT;
+	self->originalType = self->type = ASAPModuleType_RMT;
 	if (!ASAPInfo_ParseModule(self, module, moduleLen))
 		return false;
 	int blockLen = ASAPInfo_GetWord(module, 4) + 1 - self->music;
@@ -3588,7 +3587,7 @@ static bool ASAPInfo_ParseTmc(ASAPInfo *self, uint8_t const *module, int moduleL
 {
 	if (moduleLen < 464)
 		return false;
-	self->type = ASAPModuleType_TMC;
+	self->originalType = self->type = ASAPModuleType_TMC;
 	if (!ASAPInfo_ParseModule(self, module, moduleLen))
 		return false;
 	self->channels = 2;
@@ -3697,7 +3696,7 @@ static bool ASAPInfo_ParseTm2(ASAPInfo *self, uint8_t const *module, int moduleL
 {
 	if (moduleLen < 932)
 		return false;
-	self->type = ASAPModuleType_TM2;
+	self->originalType = self->type = ASAPModuleType_TM2;
 	if (!ASAPInfo_ParseModule(self, module, moduleLen))
 		return false;
 	int i = module[37];
@@ -3790,7 +3789,7 @@ static bool ASAPInfo_ParseFc(ASAPInfo *self, uint8_t const *module, int moduleLe
 {
 	if (!ASAPInfo_ValidateFc(module, moduleLen))
 		return false;
-	self->type = ASAPModuleType_FC;
+	self->originalType = self->type = ASAPModuleType_FC;
 	self->player = 1024;
 	self->music = 2560;
 	self->songs = 0;
@@ -3938,6 +3937,16 @@ static bool ASAPInfo_ValidateSap(uint8_t const *module, int moduleLen)
 	return moduleLen >= 30 && ASAPInfo_HasStringAt(module, 0, "SAP\r\n");
 }
 
+static int ASAPInfo_GetRmtSapOffset(const ASAPInfo *self, uint8_t const *module, int moduleLen)
+{
+	if (self->player != 13315)
+		return -1;
+	int offset = self->headerLen + ASAPInfo_GetWord(module, self->headerLen + 4) - ASAPInfo_GetWord(module, self->headerLen + 2) + 7;
+	if (offset + 6 >= moduleLen || module[offset + 4] != 'R' || module[offset + 5] != 'M' || module[offset + 6] != 'T')
+		return -1;
+	return offset;
+}
+
 static bool ASAPInfo_ParseSap(ASAPInfo *self, uint8_t const *module, int moduleLen)
 {
 	if (!ASAPInfo_ValidateSap(module, moduleLen))
@@ -4048,24 +4057,46 @@ static bool ASAPInfo_ParseSap(ASAPInfo *self, uint8_t const *module, int moduleL
 			return false;
 		if (self->init < 0)
 			return false;
-		self->type = ASAPModuleType_SAP_B;
+		self->originalType = self->type = ASAPModuleType_SAP_B;
+		if ((self->init == 1019 || self->init == 1017) && self->player == 1283)
+			self->originalType = ASAPModuleType_DLT;
+		else if (((self->init == 1267 || self->init == 1263) && self->player == 1283) || (self->init == 62707 && self->player == 62723))
+			self->originalType = ASAPModuleType_MPT;
+		else if (self->init == 3200 || ASAPInfo_GetRmtSapOffset(self, module, moduleLen) > 0)
+			self->originalType = ASAPModuleType_RMT;
+		else if (self->init == 1269 || self->init == 62709 || self->init == 1266 || ((self->init == 1255 || self->init == 62695 || self->init == 1252) && self->fastplay == 156) || ((self->init == 1253 || self->init == 62693 || self->init == 1250) && (self->fastplay == 104 || self->fastplay == 78)))
+			self->originalType = ASAPModuleType_TMC;
+		else if ((self->init == 4224 && self->player == 1283) || (self->init == 4992 && self->player == 2051))
+			self->originalType = ASAPModuleType_TM2;
+		else if (self->init == 1024 && self->player == 1027)
+			self->originalType = ASAPModuleType_FC;
 		break;
 	case 'C':
 		if (self->player < 0)
 			return false;
 		if (self->music < 0)
 			return false;
-		self->type = ASAPModuleType_SAP_C;
+		self->originalType = self->type = ASAPModuleType_SAP_C;
+		if ((self->player == 1280 || self->player == 62720) && moduleLen >= 1024) {
+			if (self->channels > 1)
+				self->originalType = ASAPModuleType_CMS;
+			else if (module[moduleLen - 170] == 30)
+				self->originalType = ASAPModuleType_CMR;
+			else if (module[moduleLen - 909] == 48)
+				self->originalType = ASAPModuleType_CM3;
+			else
+				self->originalType = ASAPModuleType_CMC;
+		}
 		break;
 	case 'D':
 		if (self->init < 0)
 			return false;
-		self->type = ASAPModuleType_SAP_D;
+		self->originalType = self->type = ASAPModuleType_SAP_D;
 		break;
 	case 'S':
 		if (self->init < 0)
 			return false;
-		self->type = ASAPModuleType_SAP_S;
+		self->originalType = self->type = ASAPModuleType_SAP_S;
 		if (self->fastplay < 0)
 			self->fastplay = 78;
 		break;
@@ -4517,52 +4548,9 @@ const char *ASAPInfo_GetExtDescription(const char *ext)
 	}
 }
 
-static int ASAPInfo_GetRmtSapOffset(const ASAPInfo *self, uint8_t const *module, int moduleLen)
+const char *ASAPInfo_GetOriginalModuleExt(const ASAPInfo *self)
 {
-	if (self->player != 13315)
-		return -1;
-	int offset = self->headerLen + ASAPInfo_GetWord(module, self->headerLen + 4) - ASAPInfo_GetWord(module, self->headerLen + 2) + 7;
-	if (offset + 6 >= moduleLen || module[offset + 4] != 'R' || module[offset + 5] != 'M' || module[offset + 6] != 'T')
-		return -1;
-	return offset;
-}
-
-static ASAPModuleType ASAPInfo_GetOriginalModuleType(const ASAPInfo *self, uint8_t const *module, int moduleLen)
-{
-	switch (self->type) {
-	case ASAPModuleType_SAP_B:
-		if ((self->init == 1019 || self->init == 1017) && self->player == 1283)
-			return ASAPModuleType_DLT;
-		if (((self->init == 1267 || self->init == 1263) && self->player == 1283) || (self->init == 62707 && self->player == 62723))
-			return ASAPModuleType_MPT;
-		if (self->init == 3200 || ASAPInfo_GetRmtSapOffset(self, module, moduleLen) > 0)
-			return ASAPModuleType_RMT;
-		if (self->init == 1269 || self->init == 62709 || self->init == 1266 || ((self->init == 1255 || self->init == 62695 || self->init == 1252) && self->fastplay == 156) || ((self->init == 1253 || self->init == 62693 || self->init == 1250) && (self->fastplay == 104 || self->fastplay == 78)))
-			return ASAPModuleType_TMC;
-		if ((self->init == 4224 && self->player == 1283) || (self->init == 4992 && self->player == 2051))
-			return ASAPModuleType_TM2;
-		if (self->init == 1024 && self->player == 1027)
-			return ASAPModuleType_FC;
-		return self->type;
-	case ASAPModuleType_SAP_C:
-		if ((self->player == 1280 || self->player == 62720) && moduleLen >= 1024) {
-			if (self->channels > 1)
-				return ASAPModuleType_CMS;
-			if (module[moduleLen - 170] == 30)
-				return ASAPModuleType_CMR;
-			if (module[moduleLen - 909] == 48)
-				return ASAPModuleType_CM3;
-			return ASAPModuleType_CMC;
-		}
-		return self->type;
-	default:
-		return self->type;
-	}
-}
-
-const char *ASAPInfo_GetOriginalModuleExt(const ASAPInfo *self, uint8_t const *module, int moduleLen)
-{
-	switch (ASAPInfo_GetOriginalModuleType(self, module, moduleLen)) {
+	switch (self->originalType) {
 	case ASAPModuleType_CMC:
 		return self->fastplay == 156 ? "dmc" : "cmc";
 	case ASAPModuleType_CM3:
@@ -4751,14 +4739,14 @@ void ASAPWriter_Delete(ASAPWriter *self)
 	free(self);
 }
 
-int ASAPWriter_GetSaveExts(const char **exts, const ASAPInfo *info, uint8_t const *module, int moduleLen)
+int ASAPWriter_GetSaveExts(const char **exts, const ASAPInfo *info)
 {
 	int i = 0;
 	switch (info->type) {
 	case ASAPModuleType_SAP_B:
 	case ASAPModuleType_SAP_C:
 		exts[i++] = "sap";
-		const char *ext = ASAPInfo_GetOriginalModuleExt(info, module, moduleLen);
+		const char *ext = ASAPInfo_GetOriginalModuleExt(info);
 		if (ext != NULL)
 			exts[i++] = ext;
 		exts[i++] = "xex";
@@ -4772,7 +4760,7 @@ int ASAPWriter_GetSaveExts(const char **exts, const ASAPInfo *info, uint8_t cons
 		exts[i++] = "sap";
 		break;
 	default:
-		exts[i++] = ASAPInfo_GetOriginalModuleExt(info, module, moduleLen);
+		exts[i++] = ASAPInfo_GetOriginalModuleExt(info);
 		exts[i++] = "sap";
 		exts[i++] = "xex";
 		break;
@@ -5549,8 +5537,7 @@ static bool ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8
 	ASAPNativeModuleWriter nativeWriter;
 	nativeWriter.writer = self;
 	nativeWriter.sourceModule = module;
-	ASAPModuleType type = info->type;
-	switch (type) {
+	switch (info->type) {
 	case ASAPModuleType_SAP_B:
 	case ASAPModuleType_SAP_C:
 		;
@@ -5563,13 +5550,12 @@ static bool ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8
 		int blockLen = ASAPNativeModuleWriter_GetWord(&nativeWriter, 4) - ASAPNativeModuleWriter_GetWord(&nativeWriter, 2) + 7;
 		if (blockLen < 7 || info->headerLen + blockLen >= moduleLen)
 			return false;
-		type = ASAPInfo_GetOriginalModuleType(info, module, moduleLen);
-		if (type == ASAPModuleType_FC) {
+		if (info->originalType == ASAPModuleType_FC) {
 			if (!ASAPWriter_WriteBytes(self, module, info->headerLen + 6, info->headerLen + blockLen))
 				return false;
 		}
 		else {
-			if (!ASAPNativeModuleWriter_Write(&nativeWriter, info, type, blockLen))
+			if (!ASAPNativeModuleWriter_Write(&nativeWriter, info, info->originalType, blockLen))
 				return false;
 		}
 		break;
@@ -5577,7 +5563,7 @@ static bool ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8
 		return ASAPWriter_WriteBytes(self, module, 0, moduleLen);
 	default:
 		nativeWriter.sourceOffset = 0;
-		if (!ASAPNativeModuleWriter_Write(&nativeWriter, info, type, moduleLen))
+		if (!ASAPNativeModuleWriter_Write(&nativeWriter, info, info->type, moduleLen))
 			return false;
 		break;
 	}
@@ -5661,7 +5647,7 @@ int ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPInf
 		}
 	default:
 		;
-		const char *possibleExt = ASAPInfo_GetOriginalModuleExt(info, module, moduleLen);
+		const char *possibleExt = ASAPInfo_GetOriginalModuleExt(info);
 		if (possibleExt != NULL) {
 			int packedPossibleExt = ASAPInfo_PackExt(possibleExt);
 			if (destExt == packedPossibleExt || (destExt == 3698036 && packedPossibleExt == 6516084)) {
