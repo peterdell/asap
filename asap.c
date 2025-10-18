@@ -2630,18 +2630,12 @@ static bool ASAP_RestartSong(ASAP *self)
 		}
 		if (!ASAP_Do6502Init(self, player, 2, self->moduleInfo.songPos[self->currentSong], 0))
 			return false;
-		switch (self->moduleInfo.type) {
-		case ASAPModuleType_MD1:
-			if (!ASAP_Do6502Init(self, player, 5, self->mptSamples15kHz ? 1 : 0, 0))
-				return false;
+		if (self->moduleInfo.type == ASAPModuleType_MPT)
 			break;
-		case ASAPModuleType_MD2:
-			if (!ASAP_Do6502Init(self, player, 6, 0, 0))
-				return false;
-			break;
-		default:
-			break;
-		}
+		self->cpu.pc = player;
+		self->cpu.a = self->moduleInfo.type == ASAPModuleType_MD1 ? 5 : 6;
+		self->cpu.x = self->mptSamples15kHz ? 1 : 0;
+		self->cpu.s = 255;
 		break;
 	case ASAPModuleType_RMT:
 		if (!ASAP_Do6502Init(self, player, self->moduleInfo.songPos[self->currentSong], music, music >> 8))

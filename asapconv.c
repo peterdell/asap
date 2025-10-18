@@ -67,8 +67,8 @@ static void print_help(void)
 {
 	printf(
 		"Usage: asapconv [OPTIONS] INPUTFILE...\n"
-		"Each INPUTFILE must be in a supported format:\n"
-		"SAP, CMC, CM3, CMR, CMS, DMC, DLT, MPT, MPD, RMT, TMC, TM8, TM2 or FC.\n"
+		"Each INPUTFILE must be in a supported format: SAP, CMC, CM3, CMR,\n"
+		"CMS, DMC, DLT, MPT, MPD, MD1, MD2, RMT, TMC, TM8, TM2 or FC.\n"
 		"Output EXT must be one of the above or XEX, " SAMPLE_FORMATS ".\n"
 		"Options:\n"
 		"-o FILE.EXT --output=FILE.EXT  Write to the specified file\n"
@@ -168,6 +168,16 @@ static void set_music_address(const char *s)
 	arg_music_address = parse_int(s, 16, "music address", 0xffff);
 }
 
+static int loader_load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
+{
+	FILE *fp = fopen(filename, "rb");
+	if (fp == NULL)
+		return -1;
+	length = fread(buffer, 1, length, fp);
+	fclose(fp);
+	return length;
+}
+
 static void apply_tags(const char *input_file, ASAPInfo *info)
 {
 	if (arg_author != NULL) {
@@ -185,14 +195,24 @@ static void apply_tags(const char *input_file, ASAPInfo *info)
 	}
 }
 
-static ASAP *load_module(const char *input_file, const uint8_t *module, int module_len)
+typedef struct {
+	int (*load)(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length);
+} ASAPFileLoaderVtbl;
+
+struct ASAPFileLoader {
+	const ASAPFileLoaderVtbl *vtbl;
+};
+
+static ASAP *load_module(const char *input_file)
 {
 	ASAP *asap = ASAP_New();
 	if (asap == NULL)
 		fatal_error("out of memory");
 	ASAP_SetSampleRate(asap, arg_sample_rate);
-	if (!ASAP_Load(asap, input_file, module, module_len))
-		fatal_error("%s: unsupported file", input_file);
+	static const ASAPFileLoaderVtbl loader_vtbl = { loader_load };
+	static const ASAPFileLoader loader = { &loader_vtbl };
+	if (!ASAP_LoadFiles(asap, &loader, input_file))
+		fatal_error("%s: cannot open", input_file);
 	ASAPInfo *info = (ASAPInfo *) ASAP_GetInfo(asap); /* FIXME: avoid cast */
 	apply_tags(input_file, info);
 	return asap;
@@ -356,9 +376,9 @@ static void close_output_file(FILE *fp)
 	}
 }
 
-static void convert_to_wav(const char *input_file, const uint8_t *module, int module_len, bool output_header)
+static void convert_to_wav(const char *input_file, bool output_header)
 {
-	ASAP *asap = load_module(input_file, module, module_len);
+	ASAP *asap = load_module(input_file);
 	FILE *fp;
 
 	while ((fp = open_output_file(input_file, ASAP_GetInfo(asap), true)) != NULL) {
@@ -428,9 +448,9 @@ static FARPROC lame_proc(HMODULE lame_dll, const char *name)
 
 #endif
 
-static void convert_to_mp3(const char *input_file, const uint8_t *module, int module_len)
+static void convert_to_mp3(const char *input_file)
 {
-	ASAP *asap = load_module(input_file, module, module_len);
+	ASAP *asap = load_module(input_file);
 	const ASAPInfo *info = ASAP_GetInfo(asap);
 	int channels = ASAPInfo_GetChannels(info);
 
@@ -516,12 +536,18 @@ static void convert_to_mp3(const char *input_file, const uint8_t *module, int mo
 
 #endif /* HAVE_LIBMP3LAME */
 
-static void convert_to_module(const char *input_file, const uint8_t *module, int module_len, bool output_xex)
+static void convert_to_module(const char *input_file, bool output_xex)
 {
 	const char *input_ext = strrchr(input_file, '.');
 	if (input_ext == NULL)
 		fatal_error("%s: missing extension", input_file);
 	input_ext++;
+	FILE *fp = fopen(input_file, "rb");
+	if (fp == NULL)
+		fatal_error("cannot open %s", input_file);
+	static uint8_t module[ASAPInfo_MAX_MODULE_LENGTH];
+	int module_len = fread(module, 1, sizeof(module), fp);
+	fclose(fp);
 	ASAPInfo *info = ASAPInfo_New();
 	if (info == NULL)
 		fatal_error("out of memory");
@@ -539,7 +565,6 @@ static void convert_to_module(const char *input_file, const uint8_t *module, int
 	if (arg_music_address >= 0)
 		ASAPInfo_SetMusicAddress(info, arg_music_address);
 
-	FILE *fp;
 	while ((fp = open_output_file(input_file, info, output_xex)) != NULL) {
 		if (output_xex)
 			ASAPInfo_SetDefaultSong(info, current_song);
@@ -562,31 +587,24 @@ static void process_file(const char *input_file)
 {
 	if (arg_output == NULL)
 		fatal_error("the -o/--output option is mandatory");
-	FILE *fp = fopen(input_file, "rb");
-	if (fp == NULL)
-		fatal_error("cannot open %s", input_file);
-	static uint8_t module[ASAPInfo_MAX_MODULE_LENGTH];
-	int module_len = fread(module, 1, sizeof(module), fp);
-	fclose(fp);
-
 	const char *output_ext = strrchr(arg_output, '.');
 	if (output_ext == NULL)
 		fatal_error("missing .EXT in -o/--output");
 	output_ext++;
 	current_song = -1;
 	if (strcasecmp(output_ext, "wav") == 0)
-		convert_to_wav(input_file, module, module_len, true);
+		convert_to_wav(input_file, true);
 	else if (strcasecmp(output_ext, "raw") == 0)
-		convert_to_wav(input_file, module, module_len, false);
+		convert_to_wav(input_file, false);
 	else if (strcasecmp(output_ext, "mp3") == 0) {
 #ifdef HAVE_LIBMP3LAME
-		convert_to_mp3(input_file, module, module_len);
+		convert_to_mp3(input_file);
 #else
 		fatal_error("this build of asapconv doesn't support MP3");
 #endif
 	}
 	else
-		convert_to_module(input_file, module, module_len, strcasecmp(output_ext, "xex") == 0);
+		convert_to_module(input_file, strcasecmp(output_ext, "xex") == 0);
 }
 
 int main(int argc, char *argv[])

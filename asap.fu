@@ -521,16 +521,12 @@ public class ASAP
 			if (ModuleInfo.Type != ASAPModuleType.Mpt)
 				Do6502Init(player, 0x03, MptSamplesPage - 1, 0xe0);
 			Do6502Init(player, 0x02, ModuleInfo.SongPos[CurrentSong], 0);
-			switch (ModuleInfo.Type) {
-			case ASAPModuleType.Md1:
-				Do6502Init(player, 0x05, MptSamples15kHz ? 1 : 0, 0);
+			if (ModuleInfo.Type == ASAPModuleType.Mpt)
 				break;
-			case ASAPModuleType.Md2:
-				Do6502Init(player, 0x06, 0, 0);
-				break;
-			default:
-				break;
-			}
+			Cpu.Pc = player;
+			Cpu.A = ModuleInfo.Type == ASAPModuleType.Md1 ? 0x05 : 0x06;
+			Cpu.X = MptSamples15kHz ? 1 : 0;
+			Cpu.S = 0xff;
 			break;
 		case ASAPModuleType.Rmt:
 			Do6502Init(player, ModuleInfo.SongPos[CurrentSong], music, music >> 8);
