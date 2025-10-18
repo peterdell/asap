@@ -5,6 +5,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+typedef struct ASAPFileLoader ASAPFileLoader;
 typedef struct ASAP ASAP;
 typedef struct ASAPInfo ASAPInfo;
 typedef struct ASAPWriter ASAPWriter;
@@ -64,6 +65,15 @@ void ASAP_DetectSilence(ASAP *self, int seconds);
  * @return <code>false</code> on error.
  */
 bool ASAP_Load(ASAP *self, const char *filename, uint8_t const *module, int moduleLen);
+
+/**
+ * Loads music data, possibly from several files.
+ * @param self This <code>ASAP</code>.
+ * @param loader File loader.
+ * @param filename Filename of the main file ("module").
+ * @return <code>false</code> on error.
+ */
+bool ASAP_LoadFiles(ASAP *self, const ASAPFileLoader *loader, const char *filename);
 
 /**
  * Returns information about the loaded module.

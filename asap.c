@@ -1,6 +1,8 @@
 // Generated automatically with "fut". Do not edit.
 #include <math.h>
+#include <stdarg.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "asap.h"
@@ -29,6 +31,20 @@ static char *FuString_Substring(const char *str, size_t len)
 	return p;
 }
 
+static char *FuString_Format(const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	size_t len = vsnprintf(NULL, 0, format, args) + 1;
+	va_end(args);
+	va_start(args, format);
+	char *str = malloc(len);
+	vsnprintf(str, len, format, args);
+	va_end(args);
+	return str;
+}
+typedef struct ASAPMptSamples ASAPMptSamples;
+
 typedef enum {
 	NmiStatus_RESET,
 	NmiStatus_ON_V_BLANK,
@@ -46,6 +62,8 @@ typedef enum {
 	ASAPModuleType_CMS,
 	ASAPModuleType_DLT,
 	ASAPModuleType_MPT,
+	ASAPModuleType_MD1,
+	ASAPModuleType_MD2,
 	ASAPModuleType_RMT,
 	ASAPModuleType_TMC,
 	ASAPModuleType_TM2,
@@ -68,6 +86,23 @@ typedef struct FlashPack FlashPack;
 typedef struct PokeyChannel PokeyChannel;
 typedef struct Pokey Pokey;
 typedef struct PokeyPair PokeyPair;
+
+typedef struct {
+	int (*load)(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length);
+} ASAPFileLoaderVtbl;
+struct ASAPFileLoader {
+	const ASAPFileLoaderVtbl *vtbl;
+};
+
+struct ASAPMptSamples {
+	uint8_t content[12320];
+	int contentLength;
+	bool is15kHz;
+};
+
+static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, int moduleFilenameLength, int extNumber);
+
+static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, uint8_t *memory);
 
 struct Cpu6502 {
 	ASAP *asap;
@@ -294,7 +329,7 @@ static bool ASAPInfo_ParseDlt(ASAPInfo *self, uint8_t const *module, int moduleL
 
 static void ASAPInfo_ParseMptSong(ASAPInfo *self, uint8_t const *module, bool *globalSeen, int songLen, int pos);
 
-static bool ASAPInfo_ParseMpt(ASAPInfo *self, uint8_t const *module, int moduleLen);
+static bool ASAPInfo_ParseMpt(ASAPInfo *self, uint8_t const *module, int moduleLen, ASAPModuleType type);
 
 static int ASAPInfo_GetRmtInstrumentFrames(uint8_t const *module, int instrument, int volume, int volumeFrame, bool onExtraPokey);
 
@@ -367,6 +402,8 @@ struct ASAP {
 	uint8_t covox[4];
 	PokeyPair pokeys;
 	ASAPInfo moduleInfo;
+	int mptSamplesPage;
+	bool mptSamples15kHz;
 	int nextPlayerCycle;
 	int tmcPerFrameCounter;
 	int currentSong;
@@ -395,6 +432,8 @@ static void ASAP_HandleEvent(ASAP *self);
 static int ASAP_Do6502Frame(ASAP *self);
 
 static int ASAP_DoFrame(ASAP *self);
+
+static bool ASAP_DoLoad(ASAP *self, const char *filename, uint8_t const *module, int moduleLen, const ASAPFileLoader *loader);
 
 static bool ASAP_Do6502Init(ASAP *self, int pc, int a, int x, int y);
 
@@ -2147,6 +2186,54 @@ static const uint8_t FuResource_xexinfo_obx[178] = {
 	232, 153, 0, 255, 104, 153, 0, 254, 104, 153, 0, 253, 200, 208, 223, 32,
 	115, 252 };
 
+static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, int moduleFilenameLength, int extNumber)
+{
+	const char *extInitial = moduleFilename[moduleFilenameLength - 3] == 'M' ? "D" : "d";
+	char *filename = FuString_Format("%.*s%s%d", moduleFilenameLength - 3, moduleFilename, extInitial, extNumber);
+	self->contentLength = loader->vtbl->load(loader, filename, self->content, 12320);
+	if (self->contentLength < 288) {
+		free(filename);
+		return false;
+	}
+	int end = -1;
+	for (int i = 0; i < 16; i++) {
+		int start = self->content[i];
+		if (start == 0) {
+			for (; i < 16; i++) {
+				if (self->content[i] != 0 || self->content[16 + i] != 0) {
+					free(filename);
+					return false;
+				}
+			}
+			break;
+		}
+		if (i > 0 && start != end) {
+			free(filename);
+			return false;
+		}
+		end = self->content[16 + i];
+		if (end <= start) {
+			free(filename);
+			return false;
+		}
+	}
+	bool returnValue = self->contentLength == ((end - self->content[0]) << 8) + 32;
+	free(filename);
+	return returnValue;
+}
+
+static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, uint8_t *memory)
+{
+	int moduleFilenameLength = (ptrdiff_t) strlen(moduleFilename);
+	if (moduleFilename[moduleFilenameLength - 1] == '1' && ASAPMptSamples_DoLoad(self, loader, moduleFilename, moduleFilenameLength, 15))
+		self->is15kHz = true;
+	else if (ASAPMptSamples_DoLoad(self, loader, moduleFilename, moduleFilenameLength, 8))
+		self->is15kHz = false;
+	else
+		return false;
+	return true;
+}
+
 static void ASAP_Construct(ASAP *self)
 {
 	PokeyPair_Construct(&self->pokeys);
@@ -2329,6 +2416,8 @@ static void ASAP_Call6502Player(ASAP *self)
 		ASAP_Call6502(self, player + 259);
 		break;
 	case ASAPModuleType_MPT:
+	case ASAPModuleType_MD1:
+	case ASAPModuleType_MD2:
 	case ASAPModuleType_RMT:
 	case ASAPModuleType_TM2:
 	case ASAPModuleType_FC:
@@ -2396,7 +2485,7 @@ static int ASAP_DoFrame(ASAP *self)
 	return cycles;
 }
 
-bool ASAP_Load(ASAP *self, const char *filename, uint8_t const *module, int moduleLen)
+static bool ASAP_DoLoad(ASAP *self, const char *filename, uint8_t const *module, int moduleLen, const ASAPFileLoader *loader)
 {
 	if (!ASAPInfo_Load(&self->moduleInfo, filename, module, moduleLen))
 		return false;
@@ -2415,6 +2504,16 @@ bool ASAP_Load(ASAP *self, const char *filename, uint8_t const *module, int modu
 		memcpy(self->cpu.memory + player, playerRoutine + 6, playerLastByte + 1 - player);
 		if (self->moduleInfo.player < 0)
 			self->moduleInfo.player = player;
+		if (self->moduleInfo.type == ASAPModuleType_MD1 || self->moduleInfo.type == ASAPModuleType_MD2) {
+			if (loader == NULL)
+				return false;
+			ASAPMptSamples samples;
+			if (!ASAPMptSamples_Load(&samples, loader, filename, self->cpu.memory))
+				return false;
+			self->mptSamplesPage = samples.content[0];
+			self->mptSamples15kHz = samples.is15kHz;
+			memcpy(self->cpu.memory + ((self->mptSamplesPage << 8) - 32), samples.content, samples.contentLength);
+		}
 		return true;
 	}
 	memset(self->cpu.memory, 0, sizeof(self->cpu.memory));
@@ -2433,6 +2532,20 @@ bool ASAP_Load(ASAP *self, const char *filename, uint8_t const *module, int modu
 			moduleIndex += 2;
 	}
 	return false;
+}
+
+bool ASAP_Load(ASAP *self, const char *filename, uint8_t const *module, int moduleLen)
+{
+	return ASAP_DoLoad(self, filename, module, moduleLen, NULL);
+}
+
+bool ASAP_LoadFiles(ASAP *self, const ASAPFileLoader *loader, const char *filename)
+{
+	uint8_t module[65000];
+	int moduleLen = loader->vtbl->load(loader, filename, module, 65000);
+	if (moduleLen < 0)
+		return false;
+	return ASAP_DoLoad(self, filename, module, moduleLen, loader);
 }
 
 const ASAPInfo *ASAP_GetInfo(const ASAP *self)
@@ -2508,10 +2621,28 @@ static bool ASAP_RestartSong(ASAP *self)
 			return false;
 		break;
 	case ASAPModuleType_MPT:
+	case ASAPModuleType_MD1:
+	case ASAPModuleType_MD2:
 		if (!ASAP_Do6502Init(self, player, 0, music >> 8, music))
 			return false;
+		if (self->moduleInfo.type != ASAPModuleType_MPT) {
+			if (!ASAP_Do6502Init(self, player, 3, self->mptSamplesPage - 1, 224))
+				return false;
+		}
 		if (!ASAP_Do6502Init(self, player, 2, self->moduleInfo.songPos[self->currentSong], 0))
 			return false;
+		switch (self->moduleInfo.type) {
+		case ASAPModuleType_MD1:
+			if (!ASAP_Do6502Init(self, player, 5, self->mptSamples15kHz ? 1 : 0, 0))
+				return false;
+			break;
+		case ASAPModuleType_MD2:
+			if (!ASAP_Do6502Init(self, player, 6, 0, 0))
+				return false;
+			break;
+		default:
+			break;
+		}
 		break;
 	case ASAPModuleType_RMT:
 		if (!ASAP_Do6502Init(self, player, self->moduleInfo.songPos[self->currentSong], music, music >> 8))
@@ -2709,6 +2840,8 @@ static uint8_t const *ASAP6502_GetPlayerRoutine(const ASAPInfo *info)
 	case ASAPModuleType_DLT:
 		return FuResource_dlt_obx;
 	case ASAPModuleType_MPT:
+	case ASAPModuleType_MD1:
+	case ASAPModuleType_MD2:
 		return FuResource_mpt_obx;
 	case ASAPModuleType_RMT:
 		return ASAPInfo_GetChannels(info) == 1 ? FuResource_rmt4_obx : FuResource_rmt8_obx;
@@ -3102,11 +3235,11 @@ static void ASAPInfo_ParseMptSong(ASAPInfo *self, uint8_t const *module, bool *g
 		ASAPInfo_AddSong(self, playerCalls);
 }
 
-static bool ASAPInfo_ParseMpt(ASAPInfo *self, uint8_t const *module, int moduleLen)
+static bool ASAPInfo_ParseMpt(ASAPInfo *self, uint8_t const *module, int moduleLen, ASAPModuleType type)
 {
 	if (moduleLen < 464)
 		return false;
-	self->type = ASAPModuleType_MPT;
+	self->type = type;
 	if (!ASAPInfo_ParseModule(self, module, moduleLen))
 		return false;
 	int track0Addr = ASAPInfo_GetWord(module, 2) + 458;
@@ -3978,6 +4111,8 @@ static bool ASAPInfo_IsOurPackedExt(int ext)
 	case 7629924:
 	case 7630957:
 	case 6582381:
+	case 3236973:
+	case 3302509:
 	case 7630194:
 	case 6516084:
 	case 3698036:
@@ -4071,10 +4206,14 @@ bool ASAPInfo_Load(ASAPInfo *self, const char *filename, uint8_t const *module, 
 	case 7629924:
 		return ASAPInfo_ParseDlt(self, module, moduleLen);
 	case 7630957:
-		return ASAPInfo_ParseMpt(self, module, moduleLen);
+		return ASAPInfo_ParseMpt(self, module, moduleLen, ASAPModuleType_MPT);
 	case 6582381:
 		self->fastplay = 156;
-		return ASAPInfo_ParseMpt(self, module, moduleLen);
+		return ASAPInfo_ParseMpt(self, module, moduleLen, ASAPModuleType_MPT);
+	case 3236973:
+		return ASAPInfo_ParseMpt(self, module, moduleLen, ASAPModuleType_MD1);
+	case 3302509:
+		return ASAPInfo_ParseMpt(self, module, moduleLen, ASAPModuleType_MD2);
 	case 7630194:
 		return ASAPInfo_ParseRmt(self, module, moduleLen);
 	case 6516084:
@@ -4358,6 +4497,10 @@ const char *ASAPInfo_GetExtDescription(const char *ext)
 		return "Music ProTracker";
 	case 6582381:
 		return "MPT DoublePlay";
+	case 3236973:
+		return "Music ProTracker (1-channel samples)";
+	case 3302509:
+		return "Music ProTracker (2-channel samples)";
 	case 7630194:
 		return "Raster Music Tracker";
 	case 6516084:
@@ -4432,6 +4575,10 @@ const char *ASAPInfo_GetOriginalModuleExt(const ASAPInfo *self, uint8_t const *m
 		return "dlt";
 	case ASAPModuleType_MPT:
 		return self->fastplay == 156 ? "mpd" : "mpt";
+	case ASAPModuleType_MD1:
+		return "md1";
+	case ASAPModuleType_MD2:
+		return "md2";
 	case ASAPModuleType_RMT:
 		return "rmt";
 	case ASAPModuleType_TMC:
