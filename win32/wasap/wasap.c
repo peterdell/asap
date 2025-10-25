@@ -1,7 +1,7 @@
 /*
  * wasap.c - Another Slight Atari Player for Win32 systems
  *
- * Copyright (C) 2005-2018  Piotr Fusik
+ * Copyright (C) 2005-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -23,6 +23,7 @@
 
 #include <windows.h>
 #include <commctrl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <shellapi.h>
 #include <tchar.h>
@@ -54,13 +55,13 @@ static HWAVEOUT hwo = INVALID_HANDLE_VALUE;
 static char buffer[BUFFERS][BUFFERED_BLOCKS * 2 * 2];
 static WAVEHDR wh[BUFFERS];
 static HANDLE waveThread = NULL;
-static BOOL playing = FALSE;
+static bool playing = false;
 
-static BOOL WaveOut_Write(LPWAVEHDR pwh)
+static bool WaveOut_Write(LPWAVEHDR pwh)
 {
 	int len = ASAP_Generate(asap, (PBYTE) pwh->lpData, pwh->dwBufferLength, BITS_PER_SAMPLE == 8 ? ASAPSampleFormat_U8 : ASAPSampleFormat_S16_L_E);
 	if (len <= 0)
-		return FALSE;
+		return false;
 	pwh->dwBufferLength = len;
 	pwh->dwFlags &= ~WHDR_DONE;
 	return waveOutWrite(hwo, pwh, sizeof(WAVEHDR)) == MMSYSERR_NOERROR;
@@ -69,11 +70,10 @@ static BOOL WaveOut_Write(LPWAVEHDR pwh)
 static DWORD WINAPI WaveOut_Thread(LPVOID lpParameter)
 {
 	while (playing) {
-		BOOL finished = TRUE;
-		int i;
-		for (i = 0; i < BUFFERS; i++) {
+		bool finished = true;
+		for (int i = 0; i < BUFFERS; i++) {
 			if ((wh[i].dwFlags & WHDR_DONE) == 0 || WaveOut_Write(&wh[i]))
-				finished = FALSE;
+				finished = false;
 		}
 		if (finished) {
 			PostMessage(hWnd, WM_COMMAND, IDM_STOP, 0);
@@ -88,8 +88,7 @@ static void WaveOut_Close(void)
 {
 	if (waveEvent != NULL) {
 		if (hwo != INVALID_HANDLE_VALUE) {
-			int i;
-			playing = FALSE;
+			playing = false;
 			if (waveThread != NULL) {
 				SetEvent(waveEvent);
 				WaitForSingleObject(waveThread, 300);
@@ -97,7 +96,7 @@ static void WaveOut_Close(void)
 				waveThread = NULL;
 			}
 			waveOutReset(hwo);
-			for (i = 0; i < BUFFERS; i++) {
+			for (int i = 0; i < BUFFERS; i++) {
 				if (wh[i].dwFlags & WHDR_PREPARED)
 					waveOutUnprepareHeader(hwo, &wh[i], sizeof(WAVEHDR));
 			}
@@ -109,16 +108,13 @@ static void WaveOut_Close(void)
 	}
 }
 
-static int WaveOut_Open(int channels)
+static bool WaveOut_Open(int channels)
 {
-	WAVEFORMATEX wfx;
-	int i;
-	DWORD waveThreadId;
-
 	waveEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 	if (waveEvent == NULL)
-		return FALSE;
+		return false;
 
+	WAVEFORMATEX wfx;
 	wfx.wFormatTag = WAVE_FORMAT_PCM;
 	wfx.nChannels = channels;
 	wfx.nSamplesPerSec = ASAP_SAMPLE_RATE;
@@ -127,27 +123,28 @@ static int WaveOut_Open(int channels)
 	wfx.wBitsPerSample = BITS_PER_SAMPLE;
 	wfx.cbSize = 0;
 	if (waveOutOpen(&hwo, WAVE_MAPPER, &wfx, (DWORD_PTR) waveEvent, 0, CALLBACK_EVENT) != MMSYSERR_NOERROR)
-		return FALSE;
+		return false;
 
 	ZeroMemory(&wh, sizeof(wh));
-	for (i = 0; i < BUFFERS; i++) {
+	for (int i = 0; i < BUFFERS; i++) {
 		wh[i].lpData = buffer[i];
 		wh[i].dwBufferLength = BUFFERED_BLOCKS * wfx.nBlockAlign;
 		if (waveOutPrepareHeader(hwo, &wh[i], sizeof(WAVEHDR)) != MMSYSERR_NOERROR) {
 			WaveOut_Close();
-			return FALSE;
+			return false;
 		}
 		wh[i].dwFlags |= WHDR_DONE;
 	}
 
-	playing = TRUE;
+	playing = true;
+	DWORD waveThreadId;
 	waveThread = CreateThread(NULL, 0, WaveOut_Thread, NULL, 0, &waveThreadId);
 	if (waveThread == NULL) {
 		WaveOut_Close();
-		return FALSE;
+		return false;
 	}
 
-	return TRUE;
+	return true;
 }
 
 
@@ -171,14 +168,13 @@ static void Tray_Modify(HICON hIcon)
 	if (songs > 0) {
 		LPCTSTR pb;
 		LPCTSTR pe;
-		int len;
 		for (pb = pe = current_filename; *pe != '\0'; pe++) {
 			if (*pe == '\\' || *pe == '/')
 				pb = pe + 1;
 		}
 		/* we need to be careful because szTip is only 64 characters */
 		/* 5 + 2 + max 33 */
-		len = _stprintf(nid.szTip, pe - pb <= 33 ? APP_TITLE ": %s" : APP_TITLE ": %.30s...", pb);
+		int len = _stprintf(nid.szTip, pe - pb <= 33 ? APP_TITLE ": %s" : APP_TITLE ": %.30s...", pb);
 		if (songs > 1) {
 			/* 7 + max 3 + 4 + max 3 + 1*/
 			_stprintf(nid.szTip + len, _T(" (song %d of %d)"), current_song + 1, songs);
@@ -192,8 +188,8 @@ static void Tray_Modify(HICON hIcon)
 
 /* GUI -------------------------------------------------------------------- */
 
-static int popupShown = FALSE;
-static BOOL errorShown = FALSE;
+static bool popupShown = false;
+static bool errorShown = false;
 static HINSTANCE hInst;
 static HICON hStopIcon;
 static HICON hPlayIcon;
@@ -202,9 +198,9 @@ static HMENU hSongMenu;
 
 static void ShowError(LPCTSTR message)
 {
-	errorShown = TRUE;
+	errorShown = true;
 	MessageBox(hWnd, message, APP_TITLE, MB_OK | MB_ICONERROR);
-	errorShown = FALSE;
+	errorShown = false;
 }
 
 static void ShowAbout(void)
@@ -223,9 +219,9 @@ static void ShowAbout(void)
 		NULL,
 		LANG_NEUTRAL
 	};
-	popupShown = TRUE;
+	popupShown = true;
 	MessageBoxIndirect(&mbp);
-	popupShown = FALSE;
+	popupShown = false;
 }
 
 static void SetSongsMenu(int n)
@@ -258,30 +254,28 @@ static void StopPlayback(void)
 	EnableMenuItem(hTrayMenu, IDM_STOP, MF_BYCOMMAND | MF_GRAYED);
 }
 
-static BOOL DoLoad(ASAP *asap, BYTE *module, int module_len)
+static bool DoLoad(ASAP *asap, BYTE *module, int module_len)
 {
 #ifdef _UNICODE
 	static char ansi_filename[MAX_PATH];
 	if (WideCharToMultiByte(CP_ACP, 0, current_filename, -1, ansi_filename, MAX_PATH, NULL, NULL) <= 0) {
 		ShowError(_T("Invalid characters in filename"));
-		return FALSE;
+		return false;
 	}
 #else
 #define ansi_filename current_filename
 #endif
 	if (!ASAP_Load(asap, ansi_filename, module, module_len)) {
 		ShowError(_T("Unsupported file format"));
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 static void LoadAndPlay(int song)
 {
 	BYTE module[ASAPInfo_MAX_MODULE_LENGTH];
 	int module_len;
-	const ASAPInfo *info;
-	int duration;
 	if (!loadModule(current_filename, module, &module_len))
 		return;
 	if (songs > 0) {
@@ -293,7 +287,7 @@ static void LoadAndPlay(int song)
 	}
 	if (!DoLoad(asap, module, module_len))
 		return;
-	info = ASAP_GetInfo(asap);
+	const ASAPInfo *info = ASAP_GetInfo(asap);
 	if (song < 0)
 		song = ASAPInfo_GetDefaultSong(info);
 	songs = ASAPInfo_GetSongs(info);
@@ -306,6 +300,7 @@ static void LoadAndPlay(int song)
 	SetSongsMenu(songs);
 	CheckMenuRadioItem(hSongMenu, 0, songs - 1, song, MF_BYPOSITION);
 	current_song = song;
+	int duration;
 	if (ASAPInfo_GetLoop(info, song))
 		duration = -1;
 	else
@@ -357,11 +352,11 @@ static void SelectAndLoadFile(void)
 		NULL,
 		NULL
 	};
-	popupShown = TRUE;
+	popupShown = true;
 	ofn.hwndOwner = hWnd;
 	if (GetOpenFileName(&ofn))
 		LoadAndPlay(-1);
-	popupShown = FALSE;
+	popupShown = false;
 }
 
 /* Defined so that the progress bar is responsive, but isn't updated too often and doesn't overflow (65535 limit) */
@@ -377,27 +372,22 @@ static INT_PTR CALLBACK WavProgressDialogProc(HWND hDlg, UINT uMsg, WPARAM wPara
 	return FALSE;
 }
 
-static BOOL DoSaveWav(ASAP *asap)
+static bool DoSaveWav(ASAP *asap)
 {
-	HANDLE fh;
-	BYTE buffer[8192];
-	DWORD len;
-	HWND progressWnd;
-	int progressPos;
-	int newProgressPos;
-	fh = CreateFile(wav_filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE fh = CreateFile(wav_filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (fh == INVALID_HANDLE_VALUE)
-		return FALSE;
-	progressWnd = CreateDialog(hInst, MAKEINTRESOURCE(IDD_PROGRESS), hWnd, WavProgressDialogProc);
-	progressPos = 0;
-	len = ASAP_GetWavHeader(asap, buffer, BITS_PER_SAMPLE == 8 ? ASAPSampleFormat_U8 : ASAPSampleFormat_S16_L_E, FALSE);
+		return false;
+	HWND progressWnd = CreateDialog(hInst, MAKEINTRESOURCE(IDD_PROGRESS), hWnd, WavProgressDialogProc);
+	int progressPos = 0;
+	BYTE buffer[8192];
+	DWORD len = ASAP_GetWavHeader(asap, buffer, BITS_PER_SAMPLE == 8 ? ASAPSampleFormat_U8 : ASAPSampleFormat_S16_L_E, false);
 	while (len > 0) {
 		if (!WriteFile(fh, buffer, len, &len, NULL)) {
 			DestroyWindow(progressWnd);
 			CloseHandle(fh);
-			return FALSE;
+			return false;
 		}
-		newProgressPos = ASAP_GetPosition(asap) >> WAV_PROGRESS_DURATION_SHIFT;
+		int newProgressPos = ASAP_GetPosition(asap) >> WAV_PROGRESS_DURATION_SHIFT;
 		if (progressPos != newProgressPos) {
 			progressPos = newProgressPos;
 			SendDlgItemMessage(progressWnd, IDC_PROGRESS, PBM_SETPOS, progressPos, 0);
@@ -412,8 +402,6 @@ static void SaveWav(void)
 {
 	BYTE module[ASAPInfo_MAX_MODULE_LENGTH];
 	int module_len;
-	ASAP *asap;
-	int duration;
 	static OPENFILENAME ofn = {
 		sizeof(OPENFILENAME),
 		NULL,
@@ -438,12 +426,12 @@ static void SaveWav(void)
 	};
 	if (!loadModule(current_filename, module, &module_len))
 		return;
-	asap = ASAP_New();
+	ASAP *asap = ASAP_New();
 	if (asap == NULL)
 		return;
 	if (!DoLoad(asap, module, module_len))
 		return;
-	duration = ASAPInfo_GetDuration(ASAP_GetInfo(asap), current_song);
+	int duration = ASAPInfo_GetDuration(ASAP_GetInfo(asap), current_song);
 	if (duration < 0) {
 		if (MessageBox(hWnd,
 			_T("This song has unknown duration.\n"
@@ -455,14 +443,14 @@ static void SaveWav(void)
 	}
 	ASAP_PlaySong(asap, current_song, duration);
 	combineFilenameExt(wav_filename, current_filename, _T("wav"));
-	popupShown = TRUE;
+	popupShown = true;
 	ofn.hwndOwner = hWnd;
 	if (GetSaveFileName(&ofn)) {
 		wav_progressLimit = duration >> WAV_PROGRESS_DURATION_SHIFT;
 		if (!DoSaveWav(asap))
 			ShowError(_T("Cannot save file"));
 	}
-	popupShown = FALSE;
+	popupShown = false;
 }
 
 static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -546,10 +534,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 {
 	LPTSTR pb;
 	LPTSTR pe;
-	WNDCLASS wc;
-	HMENU hMainMenu;
-	MSG msg;
-
 	for (pb = lpCmdLine; *pb == ' ' || *pb == '\t'; pb++);
 	for (pe = pb; *pe != '\0'; pe++);
 	while (--pe > pb && (*pe == ' ' || *pe == '\t'));
@@ -583,6 +567,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 
 	hInst = hInstance;
 
+	WNDCLASS wc;
 	wc.style = CS_OWNDC | CS_VREDRAW | CS_HREDRAW;
 	wc.lpfnWndProc = MainWndProc;
 	wc.cbClsExtra = 0;
@@ -610,7 +595,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 
 	hStopIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_STOP));
 	hPlayIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_PLAY));
-	hMainMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_TRAYMENU));
+	HMENU hMainMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_TRAYMENU));
 	hTrayMenu = GetSubMenu(hMainMenu, 0);
 	hSongMenu = GetSubMenu(hTrayMenu, 1);
 	SetMenuDefaultItem(hTrayMenu, 0, TRUE);
@@ -626,6 +611,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 	else
 		SelectAndLoadFile();
 
+	MSG msg;
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		if (infoDialog == NULL || !IsDialogMessage(infoDialog, &msg)) {
 			TranslateMessage(&msg);
