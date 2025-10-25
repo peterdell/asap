@@ -1,7 +1,7 @@
 /*
  * info_dlg.h - file information dialog box
  *
- * Copyright (C) 2007-2022  Piotr Fusik
+ * Copyright (C) 2007-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -51,6 +51,7 @@ extern "C" {
 
 void combineFilenameExt(LPTSTR dest, LPCTSTR filename, LPCTSTR ext);
 bool loadModule(LPCTSTR filename, BYTE *module, int *module_len);
+bool loadFiles(ASAP *asap, LPCTSTR filename);
 
 extern HWND infoDialog;
 void showInfoDialog(HINSTANCE hInstance, HWND hwndParent, LPCTSTR filename, int song);

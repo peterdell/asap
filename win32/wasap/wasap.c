@@ -254,18 +254,9 @@ static void StopPlayback(void)
 	EnableMenuItem(hTrayMenu, IDM_STOP, MF_BYCOMMAND | MF_GRAYED);
 }
 
-static bool DoLoad(ASAP *asap, BYTE *module, int module_len)
+static bool DoLoad(ASAP *asap)
 {
-#ifdef _UNICODE
-	static char ansi_filename[MAX_PATH];
-	if (WideCharToMultiByte(CP_ACP, 0, current_filename, -1, ansi_filename, MAX_PATH, NULL, NULL) <= 0) {
-		ShowError(_T("Invalid characters in filename"));
-		return false;
-	}
-#else
-#define ansi_filename current_filename
-#endif
-	if (!ASAP_Load(asap, ansi_filename, module, module_len)) {
+	if (!loadFiles(asap, current_filename)) {
 		ShowError(_T("Unsupported file format"));
 		return false;
 	}
@@ -274,10 +265,6 @@ static bool DoLoad(ASAP *asap, BYTE *module, int module_len)
 
 static void LoadAndPlay(int song)
 {
-	BYTE module[ASAPInfo_MAX_MODULE_LENGTH];
-	int module_len;
-	if (!loadModule(current_filename, module, &module_len))
-		return;
 	if (songs > 0) {
 		songs = 0;
 		StopPlayback();
@@ -285,7 +272,7 @@ static void LoadAndPlay(int song)
 		EnableMenuItem(hTrayMenu, IDM_FILE_INFO, MF_BYCOMMAND | MF_GRAYED);
 		EnableMenuItem(hTrayMenu, IDM_SAVE_WAV, MF_BYCOMMAND | MF_GRAYED);
 	}
-	if (!DoLoad(asap, module, module_len))
+	if (!DoLoad(asap))
 		return;
 	const ASAPInfo *info = ASAP_GetInfo(asap);
 	if (song < 0)
@@ -324,12 +311,12 @@ static void SelectAndLoadFile(void)
 		NULL,
 		0,
 		_T("All supported\0"
-		"*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc\0"
+		"*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.mpd;*.md1;*.md2;*.rmt;*.tmc;*.tm8;*.tm2;*.fc\0"
 #define ASAP_FILTER(description, masks) description " (" masks ")\0" masks "\0"
 		ASAP_FILTER("Slight Atari Player", "*.sap")
 		ASAP_FILTER("Chaos Music Composer", "*.cmc;*.cm3;*.cmr;*.cms;*.dmc")
 		ASAP_FILTER("Delta Music Composer", "*.dlt")
-		ASAP_FILTER("Music ProTracker", "*.mpt;*.mpd")
+		ASAP_FILTER("Music ProTracker", "*.mpt;*.mpd;*.md1;*.md2")
 		ASAP_FILTER("Raster Music Tracker", "*.rmt")
 		ASAP_FILTER("Theta Music Composer 1.x", "*.tmc;*.tm8")
 		ASAP_FILTER("Theta Music Composer 2.x", "*.tm2")
@@ -400,8 +387,24 @@ static bool DoSaveWav(ASAP *asap)
 
 static void SaveWav(void)
 {
-	BYTE module[ASAPInfo_MAX_MODULE_LENGTH];
-	int module_len;
+	ASAP *asap = ASAP_New();
+	if (asap == NULL)
+		return;
+	if (!DoLoad(asap))
+		return;
+	int duration = ASAPInfo_GetDuration(ASAP_GetInfo(asap), current_song);
+	if (duration < 0) {
+		if (MessageBox(hWnd,
+			_T("This song has unknown duration.\n"
+			"Use \"File information\" to update the source file with the correct duration.\n"
+			"Do you want to save 3 minutes?"),
+			_T("Unknown duration"), MB_YESNO | MB_ICONWARNING) != IDYES)
+			return;
+		duration = 180000;
+	}
+	ASAP_PlaySong(asap, current_song, duration);
+	combineFilenameExt(wav_filename, current_filename, _T("wav"));
+	popupShown = true;
 	static OPENFILENAME ofn = {
 		sizeof(OPENFILENAME),
 		NULL,
@@ -424,26 +427,6 @@ static void SaveWav(void)
 		NULL,
 		NULL
 	};
-	if (!loadModule(current_filename, module, &module_len))
-		return;
-	ASAP *asap = ASAP_New();
-	if (asap == NULL)
-		return;
-	if (!DoLoad(asap, module, module_len))
-		return;
-	int duration = ASAPInfo_GetDuration(ASAP_GetInfo(asap), current_song);
-	if (duration < 0) {
-		if (MessageBox(hWnd,
-			_T("This song has unknown duration.\n"
-			"Use \"File information\" to update the source file with the correct duration.\n"
-			"Do you want to save 3 minutes?"),
-			_T("Unknown duration"), MB_YESNO | MB_ICONWARNING) != IDYES)
-			return;
-		duration = 180000;
-	}
-	ASAP_PlaySong(asap, current_song, duration);
-	combineFilenameExt(wav_filename, current_filename, _T("wav"));
-	popupShown = true;
 	ofn.hwndOwner = hWnd;
 	if (GetSaveFileName(&ofn)) {
 		wav_progressLimit = duration >> WAV_PROGRESS_DURATION_SHIFT;

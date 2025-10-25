@@ -92,6 +92,41 @@ bool loadModule(LPCTSTR filename, BYTE *module, int *module_len)
 	return ok;
 }
 
+typedef struct {
+	int (*load)(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length);
+} ASAPFileLoaderVtbl;
+
+struct ASAPFileLoader {
+	const ASAPFileLoaderVtbl *vtbl;
+};
+
+static int loader_load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
+{
+	HANDLE fh = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (fh == INVALID_HANDLE_VALUE)
+		return -1;
+	BOOL ok = ReadFile(fh, buffer, length, (LPDWORD) &length, NULL);
+	CloseHandle(fh);
+	return ok ? length : -1;
+}
+
+bool loadFiles(ASAP *asap, LPCTSTR filename)
+{
+#ifdef _UNICODE
+	static char ansi_filename[MAX_PATH];
+	if (WideCharToMultiByte(CP_ACP, 0, filename, -1, ansi_filename, MAX_PATH, NULL, NULL) <= 0) {
+		ShowError(_T("Invalid characters in filename"));
+		return false;
+	}
+#else
+#define ansi_filename filename
+#endif
+	static const ASAPFileLoaderVtbl loader_vtbl = { loader_load };
+	static const ASAPFileLoader loader = { &loader_vtbl };
+	return ASAP_LoadFiles(asap, &loader, ansi_filename);
+#undef ansi_filename
+}
+
 HWND infoDialog = NULL;
 
 #ifndef _UNICODE /* TODO */
