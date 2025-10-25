@@ -48,7 +48,7 @@ include $(srcdir)test/test.mk
 
 # asapconv
 
-asapconv: $(call src,asapconv.c asap.[ch])
+asapconv: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
 	$(DO_CC)
 CLEAN += asapconv
 
@@ -98,7 +98,7 @@ uninstall-sdl:
 
 # asapscan
 
-asapscan: $(srcdir)asapscan.c asap-asapscan.h
+asapscan: $(call src,asapscan.c asap-stdio.[ch] asap-asapscan.h)
 	$(DO_CC)
 CLEAN += asapscan asapscan.exe
 

@@ -45,6 +45,7 @@
 #endif
 
 #include "asap.h"
+#include "asap-stdio.h"
 
 /* parsed command line */
 static const char *arg_output = NULL;
@@ -168,16 +169,6 @@ static void set_music_address(const char *s)
 	arg_music_address = parse_int(s, 16, "music address", 0xffff);
 }
 
-static int loader_load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
-{
-	FILE *fp = fopen(filename, "rb");
-	if (fp == NULL)
-		return -1;
-	length = fread(buffer, 1, length, fp);
-	fclose(fp);
-	return length;
-}
-
 static void apply_tags(const char *input_file, ASAPInfo *info)
 {
 	if (arg_author != NULL) {
@@ -195,23 +186,13 @@ static void apply_tags(const char *input_file, ASAPInfo *info)
 	}
 }
 
-typedef struct {
-	int (*load)(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length);
-} ASAPFileLoaderVtbl;
-
-struct ASAPFileLoader {
-	const ASAPFileLoaderVtbl *vtbl;
-};
-
 static ASAP *load_module(const char *input_file)
 {
 	ASAP *asap = ASAP_New();
 	if (asap == NULL)
 		fatal_error("out of memory");
 	ASAP_SetSampleRate(asap, arg_sample_rate);
-	static const ASAPFileLoaderVtbl loader_vtbl = { loader_load };
-	static const ASAPFileLoader loader = { &loader_vtbl };
-	if (!ASAP_LoadFiles(asap, &loader, input_file))
+	if (!ASAPStdio_Load(asap, input_file))
 		fatal_error("%s: cannot open", input_file);
 	ASAPInfo *info = (ASAPInfo *) ASAP_GetInfo(asap); /* FIXME: avoid cast */
 	apply_tags(input_file, info);

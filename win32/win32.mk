@@ -42,23 +42,23 @@ mingw: $(addprefix win32/,asapconv.exe libasap.a asapscan.exe wasap.exe bass_asa
 
 # asapconv
 
-win32/asapconv.exe: $(call src,asapconv.c asap.[ch])
+win32/asapconv.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
 	$(WIN32_CC) -DHAVE_LIBMP3LAME -DHAVE_LIBMP3LAME_DLL
 CLEAN += win32/asapconv.exe
 
-win32/asapconv-static-lame.exe: $(call src,asapconv.c asap.[ch])
+win32/asapconv-static-lame.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
 	$(WIN32_CC) -DHAVE_LIBMP3LAME -lmp3lame
 CLEAN += win32/asapconv-static-lame.exe
 
-win32/asapconv-no-lame.exe: $(call src,asapconv.c asap.[ch])
+win32/asapconv-no-lame.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
 	$(WIN32_CC)
 CLEAN += win32/asapconv-no-lame.exe
 
-win32/msvc/asapconv.exe: $(call src,asapconv.c asap.[ch])
+win32/msvc/asapconv.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
 	$(WIN32_CL) -DHAVE_LIBMP3LAME -DHAVE_LIBMP3LAME_DLL
 CLEAN += win32/msvc/asapconv.exe
 
-win32/x64/asapconv.exe: $(call src,asapconv.c asap.[ch])
+win32/x64/asapconv.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
 	$(WIN64_CC)
 CLEAN += win32/x64/asapconv.exe
 
@@ -88,7 +88,7 @@ CLEAN += win32/asap-sdl.exe
 
 # asapscan
 
-win32/asapscan.exe: $(srcdir)asapscan.c asap-asapscan.h
+win32/asapscan.exe: $(call src,asapscan.c asap-stdio.[ch] asap-asapscan.h)
 	$(WIN32_CC)
 CLEAN += win32/asapscan.exe
 
