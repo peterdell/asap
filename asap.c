@@ -102,7 +102,9 @@ struct ASAPMptSamples {
 
 static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, ptrdiff_t moduleFilenameLength, int extNumber);
 
-static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, uint8_t *memory);
+static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename);
+
+static void ASAPMptSamples_Relocate(ASAPMptSamples *self, int music, int musicLast);
 
 struct Cpu6502 {
 	ASAP *asap;
@@ -2221,7 +2223,7 @@ static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *lo
 	return returnValue;
 }
 
-static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename, uint8_t *memory)
+static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename)
 {
 	ptrdiff_t moduleFilenameLength = (ptrdiff_t) strlen(moduleFilename);
 	if (moduleFilename[moduleFilenameLength - 1] == '1' && ASAPMptSamples_DoLoad(self, loader, moduleFilename, moduleFilenameLength, 15))
@@ -2231,6 +2233,19 @@ static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *load
 	else
 		return false;
 	return true;
+}
+
+static void ASAPMptSamples_Relocate(ASAPMptSamples *self, int music, int musicLast)
+{
+	int start = (self->content[0] << 8) - 32;
+	if (musicLast < start || music >= start + self->contentLength)
+		return;
+	int h = 4064 + self->contentLength <= music ? 16 : (53280 - self->contentLength) >> 8;
+	h -= self->content[0];
+	for (int i = 0; i < 32; i++) {
+		if (self->content[i] != 0)
+			self->content[i] += h;
+	}
 }
 
 static void ASAP_Construct(ASAP *self)
@@ -2495,6 +2510,17 @@ static bool ASAP_DoLoad(ASAP *self, const char *filename, uint8_t const *module,
 		int music = ASAPInfo_GetMusicAddress(&self->moduleInfo);
 		if (music <= playerLastByte)
 			return false;
+		if (self->moduleInfo.type == ASAPModuleType_MD1 || self->moduleInfo.type == ASAPModuleType_MD2) {
+			if (loader == NULL)
+				return false;
+			ASAPMptSamples samples;
+			if (!ASAPMptSamples_Load(&samples, loader, filename))
+				return false;
+			ASAPMptSamples_Relocate(&samples, music, music + moduleLen - 5);
+			self->mptSamplesPage = samples.content[0];
+			self->mptSamples15kHz = samples.is15kHz;
+			memcpy(self->cpu.memory + ((self->mptSamplesPage << 8) - 32), samples.content, samples.contentLength);
+		}
 		self->cpu.memory[19456] = 0;
 		if (self->moduleInfo.type == ASAPModuleType_FC)
 			memcpy(self->cpu.memory + music, module, moduleLen);
@@ -2503,16 +2529,6 @@ static bool ASAP_DoLoad(ASAP *self, const char *filename, uint8_t const *module,
 		memcpy(self->cpu.memory + player, playerRoutine + 6, playerLastByte + 1 - player);
 		if (self->moduleInfo.player < 0)
 			self->moduleInfo.player = player;
-		if (self->moduleInfo.type == ASAPModuleType_MD1 || self->moduleInfo.type == ASAPModuleType_MD2) {
-			if (loader == NULL)
-				return false;
-			ASAPMptSamples samples;
-			if (!ASAPMptSamples_Load(&samples, loader, filename, self->cpu.memory))
-				return false;
-			self->mptSamplesPage = samples.content[0];
-			self->mptSamples15kHz = samples.is15kHz;
-			memcpy(self->cpu.memory + ((self->mptSamplesPage << 8) - 32), samples.content, samples.contentLength);
-		}
 		return true;
 	}
 	memset(self->cpu.memory, 0, sizeof(self->cpu.memory));

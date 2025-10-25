@@ -59,7 +59,7 @@ class ASAPMptSamples
 		return ContentLength == (end - Content[0] << 8) + 0x20;
 	}
 
-	public void Load!(ASAPFileLoader loader, string moduleFilename, byte[]! memory)
+	public void Load!(ASAPFileLoader loader, string moduleFilename)
 		throws ASAPFormatException
 	{
 		nint moduleFilenameLength = moduleFilename.Length;
@@ -70,6 +70,19 @@ class ASAPMptSamples
 			Is15kHz = false;
 		else
 			throw ASAPFormatException("No valid file with MPT samples");
+	}
+
+	public void Relocate!(int music, int musicLast)
+	{
+		int start = (Content[0] << 8) - 0x20;
+		if (musicLast < start || music >= start + ContentLength)
+			return;
+		int h = 0x0fe0 + ContentLength <= music ? 0x10 : (0xd020 - ContentLength) >> 8;
+		h -= Content[0];
+		for (int i = 0; i < 32; i++) {
+			if (Content[i] != 0)
+				Content[i] += h;
+		}
 	}
 }
 #endif
@@ -369,6 +382,16 @@ public class ASAP
 			int music = ModuleInfo.GetMusicAddress();
 			if (music <= playerLastByte)
 				throw ASAPFormatException("Module address conflicts with the player routine");
+			if (ModuleInfo.Type == ASAPModuleType.Md1 || ModuleInfo.Type == ASAPModuleType.Md2) {
+				if (loader == null)
+					throw ASAPFormatException("MD1/MD2 not supported in this ASAP port");
+				ASAPMptSamples() samples;
+				samples.Load(loader, filename);
+				samples.Relocate(music, music + moduleLen - 5);
+				MptSamplesPage = samples.Content[0];
+				MptSamples15kHz = samples.Is15kHz;
+				samples.Content.CopyTo(0, Cpu.Memory, (MptSamplesPage << 8) - 0x20, samples.ContentLength);
+			}
 			Cpu.Memory[0x4c00] = 0; // for 11270-byte DLT
 			if (ModuleInfo.Type == ASAPModuleType.Fc)
 				module.CopyTo(0, Cpu.Memory, music, moduleLen);
@@ -377,16 +400,6 @@ public class ASAP
 			playerRoutine.CopyTo(6, Cpu.Memory, player, playerLastByte + 1 - player);
 			if (ModuleInfo.Player < 0)
 				ModuleInfo.Player = player;
-			if (ModuleInfo.Type == ASAPModuleType.Md1 || ModuleInfo.Type == ASAPModuleType.Md2) {
-				if (loader == null)
-					throw ASAPFormatException("MD1/MD2 not supported in this ASAP port");
-				ASAPMptSamples() samples;
-				samples.Load(loader, filename, Cpu.Memory);
-				// TODO: conflict with music/player => relocate samples
-				MptSamplesPage = samples.Content[0];
-				MptSamples15kHz = samples.Is15kHz;
-				samples.Content.CopyTo(0, Cpu.Memory, (MptSamplesPage << 8) - 0x20, samples.ContentLength);
-			}
 			return;
 		}
 #endif
