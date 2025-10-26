@@ -422,7 +422,11 @@ static int ASAP_PeekHardware(const ASAP *self, int addr);
 
 static void ASAP_PokeHardware(ASAP *self, int addr, int data);
 
-static void ASAP_Call6502(ASAP *self, int addr);
+static void ASAP_StoreJsr(ASAP *self, int addr, int target);
+
+static void ASAP_Call6502(ASAP *self, int target);
+
+static void ASAP_Call6502PreservingRegisters(ASAP *self, int target);
 
 static void ASAP_Call6502Player(ASAP *self);
 
@@ -2375,12 +2379,36 @@ static void ASAP_PokeHardware(ASAP *self, int addr, int data)
 		self->cpu.memory[addr] = (uint8_t) data;
 }
 
-static void ASAP_Call6502(ASAP *self, int addr)
+static void ASAP_StoreJsr(ASAP *self, int addr, int target)
 {
-	self->cpu.memory[53760] = 32;
-	self->cpu.memory[53761] = (uint8_t) addr;
-	self->cpu.memory[53762] = (uint8_t) (addr >> 8);
+	self->cpu.memory[addr] = 32;
+	self->cpu.memory[addr + 1] = (uint8_t) target;
+	self->cpu.memory[addr + 2] = (uint8_t) (target >> 8);
+}
+
+static void ASAP_Call6502(ASAP *self, int target)
+{
+	ASAP_StoreJsr(self, 53760, target);
 	self->cpu.memory[53763] = 210;
+	self->cpu.pc = 53760;
+}
+
+static void ASAP_Call6502PreservingRegisters(ASAP *self, int target)
+{
+	Cpu6502_PushPc(&self->cpu);
+	self->cpu.memory[53760] = 8;
+	self->cpu.memory[53761] = 72;
+	self->cpu.memory[53762] = 138;
+	self->cpu.memory[53763] = 72;
+	self->cpu.memory[53764] = 152;
+	self->cpu.memory[53765] = 72;
+	ASAP_StoreJsr(self, 53766, target);
+	self->cpu.memory[53769] = 104;
+	self->cpu.memory[53770] = 168;
+	self->cpu.memory[53771] = 104;
+	self->cpu.memory[53772] = 170;
+	self->cpu.memory[53773] = 104;
+	self->cpu.memory[53774] = 64;
 	self->cpu.pc = 53760;
 }
 
@@ -2399,25 +2427,8 @@ static void ASAP_Call6502Player(ASAP *self)
 		ASAP_Call6502(self, player + 6);
 		break;
 	case ASAPModuleType_SAP_D:
-		if (player >= 0) {
-			Cpu6502_PushPc(&self->cpu);
-			self->cpu.memory[53760] = 8;
-			self->cpu.memory[53761] = 72;
-			self->cpu.memory[53762] = 138;
-			self->cpu.memory[53763] = 72;
-			self->cpu.memory[53764] = 152;
-			self->cpu.memory[53765] = 72;
-			self->cpu.memory[53766] = 32;
-			self->cpu.memory[53767] = (uint8_t) player;
-			self->cpu.memory[53768] = (uint8_t) (player >> 8);
-			self->cpu.memory[53769] = 104;
-			self->cpu.memory[53770] = 168;
-			self->cpu.memory[53771] = 104;
-			self->cpu.memory[53772] = 170;
-			self->cpu.memory[53773] = 104;
-			self->cpu.memory[53774] = 64;
-			self->cpu.pc = 53760;
-		}
+		if (player >= 0)
+			ASAP_Call6502PreservingRegisters(self, player);
 		break;
 	case ASAPModuleType_SAP_S:
 		;
@@ -2430,12 +2441,14 @@ static void ASAP_Call6502Player(ASAP *self)
 		ASAP_Call6502(self, player + 259);
 		break;
 	case ASAPModuleType_MPT:
-	case ASAPModuleType_MD1:
-	case ASAPModuleType_MD2:
 	case ASAPModuleType_RMT:
 	case ASAPModuleType_TM2:
 	case ASAPModuleType_FC:
 		ASAP_Call6502(self, player + 3);
+		break;
+	case ASAPModuleType_MD1:
+	case ASAPModuleType_MD2:
+		ASAP_Call6502PreservingRegisters(self, player + 3);
 		break;
 	case ASAPModuleType_TMC:
 		if (--self->tmcPerFrameCounter <= 0) {

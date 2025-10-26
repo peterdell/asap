@@ -240,13 +240,38 @@ public class ASAP
 			Cpu.Memory[addr] = data;
 	}
 
-	void Call6502!(int addr)
+	void StoreJsr!(int addr, int target)
+	{
+		Cpu.Memory[addr] = 0x20; // JSR
+		Cpu.Memory[addr + 1] = target & 0xff;
+		Cpu.Memory[addr + 2] = target >> 8;
+	}
+
+	void Call6502!(int target)
 	{
 		const int codeAddr = 0xd200;
-		Cpu.Memory[codeAddr] = 0x20; // JSR
-		Cpu.Memory[codeAddr + 1] = addr & 0xff;
-		Cpu.Memory[codeAddr + 2] = addr >> 8;
+		StoreJsr(codeAddr, target);
 		Cpu.Memory[codeAddr + 3] = 0xd2; // escape
+		Cpu.Pc = codeAddr;
+	}
+
+	void Call6502PreservingRegisters!(int target)
+	{
+		Cpu.PushPc();
+		const int codeAddr = 0xd200;
+		Cpu.Memory[codeAddr] = 0x08; // PHP
+		Cpu.Memory[codeAddr + 1] = 0x48; // PHA
+		Cpu.Memory[codeAddr + 2] = 0x8a; // TXA
+		Cpu.Memory[codeAddr + 3] = 0x48; // PHA
+		Cpu.Memory[codeAddr + 4] = 0x98; // TYA
+		Cpu.Memory[codeAddr + 5] = 0x48; // PHA
+		StoreJsr(codeAddr + 6, target);
+		Cpu.Memory[codeAddr + 9] = 0x68; // PLA
+		Cpu.Memory[codeAddr + 10] = 0xa8; // TAY
+		Cpu.Memory[codeAddr + 11] = 0x68; // PLA
+		Cpu.Memory[codeAddr + 12] = 0xaa; // TAX
+		Cpu.Memory[codeAddr + 13] = 0x68; // PLA
+		Cpu.Memory[codeAddr + 14] = 0x40; // RTI
 		Cpu.Pc = codeAddr;
 	}
 
@@ -267,26 +292,8 @@ public class ASAP
 			Call6502(player + 6);
 			break;
 		case ASAPModuleType.SapD:
-			if (player >= 0) {
-				Cpu.PushPc();
-				const int codeAddr = 0xd200;
-				Cpu.Memory[codeAddr] = 0x08; // PHP
-				Cpu.Memory[codeAddr + 1] = 0x48; // PHA
-				Cpu.Memory[codeAddr + 2] = 0x8a; // TXA
-				Cpu.Memory[codeAddr + 3] = 0x48; // PHA
-				Cpu.Memory[codeAddr + 4] = 0x98; // TYA
-				Cpu.Memory[codeAddr + 5] = 0x48; // PHA
-				Cpu.Memory[codeAddr + 6] = 0x20; // JSR
-				Cpu.Memory[codeAddr + 7] = player & 0xff;
-				Cpu.Memory[codeAddr + 8] = player >> 8;
-				Cpu.Memory[codeAddr + 9] = 0x68; // PLA
-				Cpu.Memory[codeAddr + 10] = 0xa8; // TAY
-				Cpu.Memory[codeAddr + 11] = 0x68; // PLA
-				Cpu.Memory[codeAddr + 12] = 0xaa; // TAX
-				Cpu.Memory[codeAddr + 13] = 0x68; // PLA
-				Cpu.Memory[codeAddr + 14] = 0x40; // RTI
-				Cpu.Pc = codeAddr;
-			}
+			if (player >= 0)
+				Call6502PreservingRegisters(player);
 			break;
 		case ASAPModuleType.SapS:
 			int i = Cpu.Memory[0x45] - 1;
@@ -299,12 +306,14 @@ public class ASAP
 			Call6502(player + 0x103);
 			break;
 		case ASAPModuleType.Mpt:
-		case ASAPModuleType.Md1:
-		case ASAPModuleType.Md2:
 		case ASAPModuleType.Rmt:
 		case ASAPModuleType.Tm2:
 		case ASAPModuleType.Fc:
 			Call6502(player + 3);
+			break;
+		case ASAPModuleType.Md1:
+		case ASAPModuleType.Md2:
+			Call6502PreservingRegisters(player + 3);
 			break;
 		case ASAPModuleType.Tmc:
 			if (--TmcPerFrameCounter <= 0) {
