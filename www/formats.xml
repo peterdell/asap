@@ -33,6 +33,18 @@
 		<dt>MPT (Music ProTracker)</dt>
 		<dd>Atari music editor from 1990s.</dd>
 
+		<dt>MD1 (MPT with 1-channel samples)</dt>
+		<dd>MPT with one channel of samples (in a companion D15 or D8 file).</dd>
+
+		<dt>MD2 (MPT with 2-channel samples)</dt>
+		<dd>MPT with two channels of samples (in a companion D8 file).</dd>
+
+		<dt>D15 (MPT 15 kHz samples)</dt>
+		<dd>Samples for an MD1 module.</dd>
+
+		<dt>D8 (MPT 8 kHz samples)</dt>
+		<dd>Samples for an MD1 or MD2 module.</dd>
+
 		<dt>MPD (MPT DoublePlay)</dt>
 		<dd>MPT clone with the 6502 routine executed at double rate of the original MPT.</dd>
 
