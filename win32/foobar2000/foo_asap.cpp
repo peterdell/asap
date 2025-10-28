@@ -1,7 +1,7 @@
 /*
  * foo_asap.cpp - ASAP plugin for foobar2000
  *
- * Copyright (C) 2006-2023  Piotr Fusik
+ * Copyright (C) 2006-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see https://asap.sourceforge.net
@@ -74,11 +74,37 @@ void onUpdatePlayingInfo()
 
 /* Decoding -------------------------------------------------------------- */
 
-inline bool has_ext(const char *path, const char *ext)
+static bool has_ext(const char *path, const char *ext)
 {
 	size_t len = strlen(path);
 	return len >= 4 && _stricmp(path + len - 4, ext) == 0;
 }
+
+struct ASAPFileLoaderVtbl
+{
+	int (*load)(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length);
+};
+
+struct ASAPFileLoader
+{
+	const ASAPFileLoaderVtbl *vtbl;
+	abort_callback &p_abort;
+	explicit ASAPFileLoader(abort_callback &p_abort);
+};
+
+static int ASAPFileLoader_Load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
+{
+	try {
+		foobar2000_io::file_ptr fp;
+		filesystem::g_open_read(fp, filename, self->p_abort);
+		return static_cast<int>(fp->read(buffer, length, self->p_abort));
+	} catch (pfc::exception &) {
+		return -1;
+	}
+}
+
+static const ASAPFileLoaderVtbl ASAPFileLoader_vtbl = { ASAPFileLoader_Load };
+ASAPFileLoader::ASAPFileLoader(abort_callback &p_abort) : vtbl(&ASAPFileLoader_vtbl), p_abort(p_abort) {}
 
 class input_asap : public input_stubs
 {
@@ -178,10 +204,11 @@ public:
 			break;
 		}
 		if (p_filehint.is_empty())
-			filesystem::g_open(p_filehint, p_path, filesystem::open_mode_read, p_abort);
+			filesystem::g_open_read(p_filehint, p_path, p_abort);
 		m_file = p_filehint;
 		module_len = static_cast<int>(m_file->read(module, sizeof(module), p_abort));
-		if (!ASAP_Load(asap, p_path, module, module_len))
+		ASAPFileLoader loader { p_abort };
+		if (!ASAP_LoadWithExtraFiles(asap, p_path, module, module_len, &loader))
 			throw exception_io_unsupported_format();
 	}
 
@@ -471,7 +498,7 @@ class input_file_type_asap : public service_impl_single_t<input_file_type>
 		{ "Slight Atari Player", "*.SAP" },
 		{ "Chaos Music Composer", "*.CMC;*.CM3;*.CMR;*.CMS;*.DMC" },
 		{ "Delta Music Composer", "*.DLT" },
-		{ "Music ProTracker", "*.MPT;*.MPD" },
+		{ "Music ProTracker", "*.MPT;*.MPD;*.MD1;*.MD2" },
 		{ "Raster Music Tracker", "*.RMT" },
 		{ "Theta Music Composer 1.x", "*.TMC;*.TM8" },
 		{ "Theta Music Composer 2.x", "*.TM2" },

@@ -57,6 +57,17 @@ void ASAP_SetSampleRate(ASAP *self, int sampleRate);
 void ASAP_DetectSilence(ASAP *self, int seconds);
 
 /**
+ * Loads music data, possibly with extra files.
+ * @param self This <code>ASAP</code>.
+ * @param filename Filename, used to determine the format.
+ * @param module Contents of the main file.
+ * @param moduleLen Length of the main file.
+ * @param loader Loader for extra files, should they be needed.
+ * @return <code>false</code> on error.
+ */
+bool ASAP_LoadWithExtraFiles(ASAP *self, const char *filename, uint8_t const *module, int moduleLen, const ASAPFileLoader *loader);
+
+/**
  * Loads music data ("module").
  * @param self This <code>ASAP</code>.
  * @param filename Filename, used to determine the format.

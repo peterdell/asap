@@ -379,7 +379,16 @@ public class ASAP
 		return cycles;
 	}
 
-	void DoLoad!(string? filename, byte[] module, int moduleLen, ASAPFileLoader? loader)
+	/// Loads music data, possibly with extra files.
+	public void LoadWithExtraFiles!(
+		/// Filename, used to determine the format.
+		string? filename,
+		/// Contents of the main file.
+		byte[] module,
+		/// Length of the main file.
+		int moduleLen,
+		/// Loader for extra files, should they be needed.
+		ASAPFileLoader? loader)
 		throws ASAPFormatException
 	{
 		ModuleInfo.Load(filename, module, moduleLen);
@@ -440,7 +449,7 @@ public class ASAP
 		int moduleLen)
 		throws ASAPFormatException
 	{
-		DoLoad(filename, module, moduleLen, null);
+		LoadWithExtraFiles(filename, module, moduleLen, null);
 	}
 
 	/// Loads music data, possibly from several files.
@@ -455,7 +464,7 @@ public class ASAP
 		int moduleLen = loader.Load(filename, module, module.Length);
 		if (moduleLen < 0)
 			throw ASAPFormatException("File not found");
-		DoLoad(filename, module, moduleLen, loader);
+		LoadWithExtraFiles(filename, module, moduleLen, loader);
 	}
 
 	/// Returns information about the loaded module.

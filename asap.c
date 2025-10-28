@@ -438,8 +438,6 @@ static int ASAP_Do6502Frame(ASAP *self);
 
 static int ASAP_DoFrame(ASAP *self);
 
-static bool ASAP_DoLoad(ASAP *self, const char *filename, uint8_t const *module, int moduleLen, const ASAPFileLoader *loader);
-
 static bool ASAP_Do6502Init(ASAP *self, int pc, int a, int x, int y);
 
 static bool ASAP_RestartSong(ASAP *self);
@@ -2512,7 +2510,7 @@ static int ASAP_DoFrame(ASAP *self)
 	return cycles;
 }
 
-static bool ASAP_DoLoad(ASAP *self, const char *filename, uint8_t const *module, int moduleLen, const ASAPFileLoader *loader)
+bool ASAP_LoadWithExtraFiles(ASAP *self, const char *filename, uint8_t const *module, int moduleLen, const ASAPFileLoader *loader)
 {
 	if (!ASAPInfo_Load(&self->moduleInfo, filename, module, moduleLen))
 		return false;
@@ -2564,7 +2562,7 @@ static bool ASAP_DoLoad(ASAP *self, const char *filename, uint8_t const *module,
 
 bool ASAP_Load(ASAP *self, const char *filename, uint8_t const *module, int moduleLen)
 {
-	return ASAP_DoLoad(self, filename, module, moduleLen, NULL);
+	return ASAP_LoadWithExtraFiles(self, filename, module, moduleLen, NULL);
 }
 
 bool ASAP_LoadFiles(ASAP *self, const ASAPFileLoader *loader, const char *filename)
@@ -2573,7 +2571,7 @@ bool ASAP_LoadFiles(ASAP *self, const ASAPFileLoader *loader, const char *filena
 	int moduleLen = loader->vtbl->load(loader, filename, module, 65000);
 	if (moduleLen < 0)
 		return false;
-	return ASAP_DoLoad(self, filename, module, moduleLen, loader);
+	return ASAP_LoadWithExtraFiles(self, filename, module, moduleLen, loader);
 }
 
 const ASAPInfo *ASAP_GetInfo(const ASAP *self)
