@@ -498,7 +498,7 @@ class input_file_type_asap : public service_impl_single_t<input_file_type>
 		{ "Slight Atari Player", "*.SAP" },
 		{ "Chaos Music Composer", "*.CMC;*.CM3;*.CMR;*.CMS;*.DMC" },
 		{ "Delta Music Composer", "*.DLT" },
-		{ "Music ProTracker", "*.MPT;*.MPD;*.MD1;*.MD2" },
+		{ "Music ProTracker", "*.MPT;*.MD1;*.MD2;*.MPD" },
 		{ "Raster Music Tracker", "*.RMT" },
 		{ "Theta Music Composer 1.x", "*.TMC;*.TM8" },
 		{ "Theta Music Composer 2.x", "*.TM2" },

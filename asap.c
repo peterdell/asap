@@ -4547,12 +4547,12 @@ const char *ASAPInfo_GetExtDescription(const char *ext)
 		return "Delta Music Composer";
 	case 7630957:
 		return "Music ProTracker";
-	case 6582381:
-		return "MPT DoublePlay";
 	case 3236973:
 		return "Music ProTracker (1-channel samples)";
 	case 3302509:
 		return "Music ProTracker (2-channel samples)";
+	case 6582381:
+		return "MPT DoublePlay";
 	case 7630194:
 		return "Raster Music Tracker";
 	case 6516084:

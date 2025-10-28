@@ -1898,9 +1898,9 @@ public class ASAPInfo
 		case PackExt("DMC"): return "CMC DoublePlay";
 		case PackExt("DLT"): return "Delta Music Composer";
 		case PackExt("MPT"): return "Music ProTracker";
-		case PackExt("MPD"): return "MPT DoublePlay";
 		case PackExt("MD1"): return "Music ProTracker (1-channel samples)";
 		case PackExt("MD2"): return "Music ProTracker (2-channel samples)";
+		case PackExt("MPD"): return "MPT DoublePlay";
 		case PackExt("RMT"): return "Raster Music Tracker";
 		case PackExt("TMC"):
 		case PackExt("TM8"): return "Theta Music Composer 1.x";

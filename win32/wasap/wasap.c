@@ -311,7 +311,7 @@ static void SelectAndLoadFile(void)
 		NULL,
 		0,
 		_T("All supported\0"
-		"*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.mpd;*.md1;*.md2;*.rmt;*.tmc;*.tm8;*.tm2;*.fc\0"
+		"*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.md1;*.md2;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc\0"
 #define ASAP_FILTER(description, masks) description " (" masks ")\0" masks "\0"
 		ASAP_FILTER("Slight Atari Player", "*.sap")
 		ASAP_FILTER("Chaos Music Composer", "*.cmc;*.cm3;*.cmr;*.cms;*.dmc")
