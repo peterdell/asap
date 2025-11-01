@@ -1,7 +1,7 @@
 /*
  * libasap_plugin.c - ASAP plugin for VLC
  *
- * Copyright (C) 2012-2019  Piotr Fusik
+ * Copyright (C) 2012-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -197,7 +197,7 @@ static int Open(vlc_object_t *obj)
 		free(module);
 		return VLC_ENOMEM;
 	}
-	if (!ASAP_Load(sys->asap, NULL, module, module_len)) {
+	if (!ASAP_Load(sys->asap, demux->psz_file, module, module_len)) {
 		ASAP_Delete(sys->asap);
 		free(sys);
 		free(module);
