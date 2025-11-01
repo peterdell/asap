@@ -123,7 +123,7 @@ bool loadFiles(ASAP *asap, LPCTSTR filename)
 #endif
 	static const ASAPFileLoaderVtbl loader_vtbl = { loader_load };
 	static const ASAPFileLoader loader = { &loader_vtbl };
-	return ASAP_LoadFiles(asap, &loader, ansi_filename);
+	return ASAP_LoadFiles(asap, ansi_filename, &loader);
 #undef ansi_filename
 }
 

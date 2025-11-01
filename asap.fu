@@ -379,6 +379,34 @@ public class ASAP
 		return cycles;
 	}
 
+	/// Loads music data ("module").
+	public void Load!(
+		/// Filename, used to determine the format.
+		string? filename,
+		/// Contents of the file.
+		byte[] module,
+		/// Length of the file.
+		int moduleLen)
+		throws ASAPFormatException
+	{
+		LoadWithExtraFiles(filename, module, moduleLen, null);
+	}
+
+	/// Loads music data, possibly from several files.
+	public void LoadFiles!(
+		/// Filename of the main file ("module").
+		string filename,
+		/// File loader.
+		ASAPFileLoader loader)
+		throws ASAPFormatException
+	{
+		byte[ASAPInfo.MaxModuleLength] module;
+		int moduleLen = loader.Load(filename, module, module.Length);
+		if (moduleLen < 0)
+			throw ASAPFormatException("File not found");
+		LoadWithExtraFiles(filename, module, moduleLen, loader);
+	}
+
 	/// Loads music data, possibly with extra files.
 	public void LoadWithExtraFiles!(
 		/// Filename, used to determine the format.
@@ -437,34 +465,6 @@ public class ASAP
 				moduleIndex += 2;
 		}
 		throw ASAPFormatException("Invalid binary block");
-	}
-
-	/// Loads music data ("module").
-	public void Load!(
-		/// Filename, used to determine the format.
-		string? filename,
-		/// Contents of the file.
-		byte[] module,
-		/// Length of the file.
-		int moduleLen)
-		throws ASAPFormatException
-	{
-		LoadWithExtraFiles(filename, module, moduleLen, null);
-	}
-
-	/// Loads music data, possibly from several files.
-	public void LoadFiles!(
-		/// File loader.
-		ASAPFileLoader loader,
-		/// Filename of the main file ("module").
-		string filename)
-		throws ASAPFormatException
-	{
-		byte[ASAPInfo.MaxModuleLength] module;
-		int moduleLen = loader.Load(filename, module, module.Length);
-		if (moduleLen < 0)
-			throw ASAPFormatException("File not found");
-		LoadWithExtraFiles(filename, module, moduleLen, loader);
 	}
 
 	/// Returns information about the loaded module.

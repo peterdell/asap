@@ -49,5 +49,5 @@ bool ASAPStdio_Load(ASAP *asap, const char *filename)
 {
 	static const ASAPFileLoaderVtbl loader_vtbl = { loader_load };
 	static const ASAPFileLoader loader = { &loader_vtbl };
-	return ASAP_LoadFiles(asap, &loader, filename);
+	return ASAP_LoadFiles(asap, filename, &loader);
 }

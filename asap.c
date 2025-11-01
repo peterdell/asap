@@ -2510,6 +2510,20 @@ static int ASAP_DoFrame(ASAP *self)
 	return cycles;
 }
 
+bool ASAP_Load(ASAP *self, const char *filename, uint8_t const *module, int moduleLen)
+{
+	return ASAP_LoadWithExtraFiles(self, filename, module, moduleLen, NULL);
+}
+
+bool ASAP_LoadFiles(ASAP *self, const char *filename, const ASAPFileLoader *loader)
+{
+	uint8_t module[65000];
+	int moduleLen = loader->vtbl->load(loader, filename, module, 65000);
+	if (moduleLen < 0)
+		return false;
+	return ASAP_LoadWithExtraFiles(self, filename, module, moduleLen, loader);
+}
+
 bool ASAP_LoadWithExtraFiles(ASAP *self, const char *filename, uint8_t const *module, int moduleLen, const ASAPFileLoader *loader)
 {
 	if (!ASAPInfo_Load(&self->moduleInfo, filename, module, moduleLen))
@@ -2558,20 +2572,6 @@ bool ASAP_LoadWithExtraFiles(ASAP *self, const char *filename, uint8_t const *mo
 			moduleIndex += 2;
 	}
 	return false;
-}
-
-bool ASAP_Load(ASAP *self, const char *filename, uint8_t const *module, int moduleLen)
-{
-	return ASAP_LoadWithExtraFiles(self, filename, module, moduleLen, NULL);
-}
-
-bool ASAP_LoadFiles(ASAP *self, const ASAPFileLoader *loader, const char *filename)
-{
-	uint8_t module[65000];
-	int moduleLen = loader->vtbl->load(loader, filename, module, 65000);
-	if (moduleLen < 0)
-		return false;
-	return ASAP_LoadWithExtraFiles(self, filename, module, moduleLen, loader);
 }
 
 const ASAPInfo *ASAP_GetInfo(const ASAP *self)
