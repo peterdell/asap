@@ -1554,12 +1554,14 @@ public class ASAPInfo
 			Fastplay = 156;
 			ParseMpt(module, moduleLen, ASAPModuleType.Mpt);
 			return;
+#if !OPENCL
 		case PackExt("MD1"):
 			ParseMpt(module, moduleLen, ASAPModuleType.Md1);
 			return;
 		case PackExt("MD2"):
 			ParseMpt(module, moduleLen, ASAPModuleType.Md2);
 			return;
+#endif
 		case PackExt("RMT"):
 			ParseRmt(module, moduleLen);
 			return;

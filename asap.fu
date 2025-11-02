@@ -24,7 +24,7 @@ public abstract class ASAPFileLoader
 	public abstract int Load(string filename, byte[]! buffer, int length);
 }
 
-#if !ASAP_ONLY_SAP
+#if !ASAP_ONLY_SAP && !OPENCL
 class ASAPMptSamples
 {
 	const int MinLength = 32 + 256;
@@ -428,6 +428,7 @@ public class ASAP
 			int music = ModuleInfo.GetMusicAddress();
 			if (music <= playerLastByte)
 				throw ASAPFormatException("Module address conflicts with the player routine");
+#if !OPENCL
 			if (ModuleInfo.Type == ASAPModuleType.Md1 || ModuleInfo.Type == ASAPModuleType.Md2) {
 				if (loader == null)
 					throw ASAPFormatException("MD1/MD2 not supported in this ASAP port");
@@ -438,6 +439,7 @@ public class ASAP
 				MptSamples15kHz = samples.Is15kHz;
 				samples.Content.CopyTo(0, Cpu.Memory, (MptSamplesPage << 8) - 0x20, samples.ContentLength);
 			}
+#endif
 			Cpu.Memory[0x4c00] = 0; // for 11270-byte DLT
 			if (ModuleInfo.Type == ASAPModuleType.Fc)
 				module.CopyTo(0, Cpu.Memory, music, moduleLen);
