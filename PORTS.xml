@@ -218,7 +218,6 @@
 		<config-time>no</config-time>
 		<mute-pokey>no</mute-pokey>
 		<stil>no</stil>
-		<comment class="bad">SAP, FC, RMT formats only</comment>
 		<lang>C</lang>
 		<a href="https://www.videolan.org/vlc/">VLC</a>
 	</port>
