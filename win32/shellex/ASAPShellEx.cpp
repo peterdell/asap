@@ -1,7 +1,7 @@
 /*
  * ASAPShellEx.cpp - ASAP Column Handler and Property Handler shell extensions
  *
- * Copyright (C) 2010-2022  Piotr Fusik
+ * Copyright (C) 2010-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -30,7 +30,7 @@
 #include "asap-infowriter.hpp"
 
 static const char extensions[][5] =
-	{ ".sap", ".cmc", ".cm3", ".cmr", ".cms", ".dmc", ".dlt", ".mpt", ".mpd", ".rmt", ".tmc", ".tm8", ".tm2", ".fc" };
+	{ ".sap", ".cmc", ".cm3", ".cmr", ".cms", ".dmc", ".dlt", ".mpt", ".md1", ".md2", ".mpd", ".rmt", ".tmc", ".tm8", ".tm2", ".fc" };
 
 static HINSTANCE g_hDll;
 static LONG g_cRef = 0;
