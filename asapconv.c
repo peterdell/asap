@@ -519,10 +519,6 @@ static void convert_to_mp3(const char *input_file)
 
 static void convert_to_module(const char *input_file, bool output_xex)
 {
-	const char *input_ext = strrchr(input_file, '.');
-	if (input_ext == NULL)
-		fatal_error("%s: missing extension", input_file);
-	input_ext++;
 	FILE *fp = fopen(input_file, "rb");
 	if (fp == NULL)
 		fatal_error("cannot open %s", input_file);
