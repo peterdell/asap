@@ -166,7 +166,7 @@ struct ASAPFileLoader {
 	const ASAPFileLoaderVtbl *vtbl;
 };
 
-static int loader_load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
+static int ASAPFileLoader_Load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
 {
 	XMPFILE file = xmpffile->Open(filename);
 	if (file == NULL)
@@ -179,7 +179,7 @@ static int loader_load(const ASAPFileLoader *self, const char *filename, uint8_t
 static DWORD WINAPI ASAP_Open(const char *filename, XMPFILE file)
 {
 	module_len = xmpffile->Read(file, module, sizeof(module));
-	static const ASAPFileLoaderVtbl loader_vtbl = { loader_load };
+	static const ASAPFileLoaderVtbl loader_vtbl = { ASAPFileLoader_Load };
 	static const ASAPFileLoader loader = { &loader_vtbl };
 	if (!ASAP_LoadWithExtraFiles(asap, filename, module, module_len, &loader))
 		return 0;
