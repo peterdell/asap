@@ -18,9 +18,11 @@
 		<MajorUpgrade DowngradeErrorMessage="Newer version of ASAP is already installed!" MigrateFeatures="yes" />
 		<Media Id="1" Cabinet="asap.cab" EmbedCab="yes" CompressionLevel="high" />
 
-		<?define NATIVE_EXTS=cmc;cm3;cmr;cms;dmc;dlt;mpt;mpd;rmt;tmc;tm8;tm2;fc?>
+		<?define SINGLE_EXTS=cmc;cm3;cmr;cms;dmc;dlt;mpt;mpd;rmt;tmc;tm8;tm2;fc?>
+		<?define NATIVE_EXTS=$(var.SINGLE_EXTS);md1;md2?>
 		<?define ASAP_EXTS=sap;$(var.NATIVE_EXTS)?>
-		<?define DOUBLECLICK=Double-click SAP, CMC, CM3, CMR, CMS, DMC, DLT, MPT, MPD, RMT, TMC, TM8, TM2 or FC file in Windows Explorer to play it in?>
+		<?define DOUBLECLICK_SINGLE=Double-click SAP, CMC, CM3, CMR, CMS, DMC, DLT, MPT, MPD, RMT, TMC, TM8, TM2 or FC file in Windows Explorer to play it in?>
+		<?define DOUBLECLICK=Double-click SAP, CMC, CM3, CMR, CMS, DMC, DLT, MPT, MD1, MD2, MPD, RMT, TMC, TM8, TM2 or FC file in Windows Explorer to play it in?>
 
 		<Icon Id="wasap.ico" SourceFile="wasap/wasap.ico" />
 		<Property Id="ARPHELPLINK" Value="https://asap.sourceforge.net/" />
@@ -244,7 +246,7 @@
 					<?foreach EXT in rmt;tmc;tm8;tm2?>
 						<RegistryValue Root="HKCR" Key=".$(var.EXT)" Name="FullDetails" Value="prop:System.PropGroup.Description;System.Title;$(var.FULLDETAILS_COMMON)" Type="string" />
 					<?endforeach?>
-					<?foreach EXT in cmc;cm3;cmr;cms;dmc;dlt;mpt;mpd;fc?>
+					<?foreach EXT in cmc;cm3;cmr;cms;dmc;dlt;mpt;md1;md2;mpd;fc?>
 						<RegistryValue Root="HKCR" Key=".$(var.EXT)" Name="FullDetails" Value="prop:$(var.FULLDETAILS_COMMON)" Type="string" />
 					<?endforeach?>
 				</Component>
@@ -294,7 +296,7 @@
 								<Extension Id="sap">
 									<Verb Id="open" Command="Open with AIMP" TargetProperty="AIMP.EXE" Argument="&quot;%1&quot;" />
 								</Extension>
-								<?foreach EXT in $(var.NATIVE_EXTS)?>
+								<?foreach EXT in $(var.SINGLE_EXTS)?>
 									<Extension Id="$(var.EXT)" />
 								<?endforeach?>
 							</ProgId>
@@ -353,7 +355,7 @@
 							<Extension Id="sap">
 								<Verb Id="open" TargetProperty="WINAMP.EXE" Argument="&quot;%1&quot;" />
 							</Extension>
-							<?foreach EXT in $(var.NATIVE_EXTS)?>
+							<?foreach EXT in $(var.SINGLE_EXTS)?>
 								<Extension Id="$(var.EXT)" />
 							<?endforeach?>
 						</ProgId>
@@ -394,7 +396,7 @@
 		<Feature Id="aimp_asap" Title="AIMP $(var.PLATFORM_BITS) plugin" Level="9" ConfigurableDirectory="AIMPASAP.DIR" Description="Plugin for $(var.PLATFORM_BITS) AIMP." AllowAdvertise="no">
 			<Level Value="1" Condition="AIMP.DIR" />
 			<ComponentRef Id="bass_asap.dll" />
-			<Feature Id="aimp_asap.ext" Title="Associate file types" Level="0" Description="$(var.DOUBLECLICK) AIMP." AllowAdvertise="no">
+			<Feature Id="aimp_asap.ext" Title="Associate file types" Level="0" Description="$(var.DOUBLECLICK_SINGLE) AIMP." AllowAdvertise="no">
 				<Level Value="9" Condition="AIMP.EXE" />
 				<ComponentRef Id="aimp_asap.ext" />
 			</Feature>
@@ -412,7 +414,7 @@
 		<Feature Id="in_asap" Title="Winamp plugin" Level="9" ConfigurableDirectory="WINAMPPLUG.DIR" Description="Plugin for Winamp." AllowAdvertise="no">
 			<Level Value="1" Condition="WINAMP.DIR" />
 			<ComponentRef Id="in_asap.dll" />
-			<Feature Id="in_asap.ext" Title="Associate file types" Level="0" Description="$(var.DOUBLECLICK) Winamp." AllowAdvertise="no">
+			<Feature Id="in_asap.ext" Title="Associate file types" Level="0" Description="$(var.DOUBLECLICK_SINGLE) Winamp." AllowAdvertise="no">
 				<Level Value="9" Condition="WINAMP.EXE" />
 				<ComponentRef Id="in_asap.ext" />
 			</Feature>
