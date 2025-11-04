@@ -114,6 +114,24 @@ static QWORD WINAPI ASAP_SetPosition(void *inst, QWORD pos, DWORD mode)
 	return pos;
 }
 
+typedef struct {
+	int (*load)(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length);
+} ASAPFileLoaderVtbl;
+
+struct ASAPFileLoader {
+	const ASAPFileLoaderVtbl *vtbl;
+};
+
+static int ASAPFileLoader_Load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
+{
+	BASSFILE file = bassfunc->file.Open(0, filename, 0, 0, 0, 0);
+	if (file == NULL)
+		return -1;
+	length = bassfunc->file.Read(file, buffer, length);
+	bassfunc->file.Close(file);
+	return length;
+}
+
 static DWORD CALLBACK StreamProc(HSTREAM handle, void *buffer, DWORD length, void *inst)
 {
 	ASAPSTREAM *stream = (ASAPSTREAM *) inst;
@@ -143,7 +161,9 @@ static HSTREAM WINAPI StreamCreateProc(BASSFILE file, DWORD flags)
 		free(stream);
 		error(BASS_ERROR_MEM);
 	}
-	if (!ASAP_Load(stream->asap, filename, module, module_len)) {
+	static const ASAPFileLoaderVtbl loader_vtbl = { ASAPFileLoader_Load };
+	static const ASAPFileLoader loader = { &loader_vtbl };
+	if (!ASAP_LoadWithExtraFiles(stream->asap, filename, module, module_len, &loader)) {
 		ASAP_Delete(stream->asap);
 		free(stream);
 		error(BASS_ERROR_FILEFORM);
@@ -196,7 +216,7 @@ static HSTREAM WINAPI StreamCreateProc(BASSFILE file, DWORD flags)
 __declspec(dllexport) const void *WINAPI BASSplugin(DWORD face)
 {
 	static const BASS_PLUGINFORM pluginform = {
-		BASS_CTYPE_MUSIC_ASAP, "ASAP", "*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc"
+		BASS_CTYPE_MUSIC_ASAP, "ASAP", "*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.md1;*.md2;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc"
 	};
 	static const BASS_PLUGININFO plugininfo = { MAKELONG(MAKEWORD(ASAPInfo_VERSION_MINOR, ASAPInfo_VERSION_MAJOR), BASSVERSION), 1, &pluginform };
 	switch (face) {

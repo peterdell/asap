@@ -296,7 +296,7 @@
 								<Extension Id="sap">
 									<Verb Id="open" Command="Open with AIMP" TargetProperty="AIMP.EXE" Argument="&quot;%1&quot;" />
 								</Extension>
-								<?foreach EXT in $(var.SINGLE_EXTS)?>
+								<?foreach EXT in $(var.NATIVE_EXTS)?>
 									<Extension Id="$(var.EXT)" />
 								<?endforeach?>
 							</ProgId>
@@ -396,7 +396,7 @@
 		<Feature Id="aimp_asap" Title="AIMP $(var.PLATFORM_BITS) plugin" Level="9" ConfigurableDirectory="AIMPASAP.DIR" Description="Plugin for $(var.PLATFORM_BITS) AIMP." AllowAdvertise="no">
 			<Level Value="1" Condition="AIMP.DIR" />
 			<ComponentRef Id="bass_asap.dll" />
-			<Feature Id="aimp_asap.ext" Title="Associate file types" Level="0" Description="$(var.DOUBLECLICK_SINGLE) AIMP." AllowAdvertise="no">
+			<Feature Id="aimp_asap.ext" Title="Associate file types" Level="0" Description="$(var.DOUBLECLICK) AIMP." AllowAdvertise="no">
 				<Level Value="9" Condition="AIMP.EXE" />
 				<ComponentRef Id="aimp_asap.ext" />
 			</Feature>
