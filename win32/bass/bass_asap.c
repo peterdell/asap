@@ -114,6 +114,8 @@ static QWORD WINAPI ASAP_SetPosition(void *inst, QWORD pos, DWORD mode)
 	return pos;
 }
 
+const BASS_FUNCTIONS *bassfunc;
+
 typedef struct {
 	int (*load)(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length);
 } ASAPFileLoaderVtbl;
@@ -124,7 +126,7 @@ struct ASAPFileLoader {
 
 static int ASAPFileLoader_Load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
 {
-	BASSFILE file = bassfunc->file.Open(0, filename, 0, 0, 0, 0);
+	BASSFILE file = bassfunc->file.Open(BASS_FILE_NAME, filename, 0, 0, 0, 0);
 	if (file == NULL)
 		return -1;
 	length = bassfunc->file.Read(file, buffer, length);
@@ -231,7 +233,7 @@ __declspec(dllexport) const void *WINAPI BASSplugin(DWORD face)
 
 BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 {
-	if (dwReason == DLL_PROCESS_ATTACH && HIWORD(BASS_GetVersion()) != BASSVERSION) {
+	if (dwReason == DLL_PROCESS_ATTACH && (HIWORD(BASS_GetVersion()) != BASSVERSION || !GetBassFunc())) {
 		MessageBox(NULL, "Incorrect BASS.DLL version (" BASSVERSIONTEXT " is required)", "ASAP", MB_ICONERROR);
 		return FALSE;
 	}
