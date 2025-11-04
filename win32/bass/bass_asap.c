@@ -1,7 +1,7 @@
 /*
  * bass_asap.c - ASAP add-on for BASS
  *
- * Copyright (C) 2010-2020  Piotr Fusik
+ * Copyright (C) 2010-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -34,12 +34,6 @@
 #define BASS_CTYPE_MUSIC_ASAP  0x1f100
 
 #include "asap.h"
-
-static const BASS_PLUGINFORM pluginform = {
-	BASS_CTYPE_MUSIC_ASAP, "ASAP", "*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc"
-};
-
-static const BASS_PLUGININFO plugininfo = { MAKELONG(MAKEWORD(ASAPInfo_VERSION_MINOR, ASAPInfo_VERSION_MAJOR), BASSVERSION), 1, &pluginform };
 
 typedef struct
 {
@@ -120,27 +114,6 @@ static QWORD WINAPI ASAP_SetPosition(void *inst, QWORD pos, DWORD mode)
 	return pos;
 }
 
-static ADDON_FUNCTIONS ASAPfuncs = {
-	0,
-	ASAP_Free,
-	ASAP_GetLength,
-#ifdef SUPPORT_ID3
-	ASAP_GetTags,
-#else
-	NULL,
-#endif
-	NULL,
-	ASAP_GetBassInfo,
-	ASAP_CanSetPosition,
-	ASAP_SetPosition,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL
-};
-
 static DWORD CALLBACK StreamProc(HSTREAM handle, void *buffer, DWORD length, void *inst)
 {
 	ASAPSTREAM *stream = (ASAPSTREAM *) inst;
@@ -190,7 +163,27 @@ static HSTREAM WINAPI StreamCreateProc(BASSFILE file, DWORD flags)
 		free(stream);
 		error(BASS_ERROR_FILEFORM);
 	}
-	HSTREAM handle = bassfunc->CreateStream(ASAP_SAMPLE_RATE, ASAPInfo_GetChannels(info), flags, &StreamProc, stream, &ASAPfuncs);
+	static const ADDON_FUNCTIONS addonfuncs = {
+		0,
+		ASAP_Free,
+		ASAP_GetLength,
+#ifdef SUPPORT_ID3
+		ASAP_GetTags,
+#else
+		NULL,
+#endif
+		NULL,
+		ASAP_GetBassInfo,
+		ASAP_CanSetPosition,
+		ASAP_SetPosition,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	};
+	HSTREAM handle = bassfunc->CreateStream(ASAP_SAMPLE_RATE, ASAPInfo_GetChannels(info), flags, &StreamProc, stream, &addonfuncs);
 	if (handle == 0) {
 		ASAP_Delete(stream->asap);
 		free(stream);
@@ -202,6 +195,10 @@ static HSTREAM WINAPI StreamCreateProc(BASSFILE file, DWORD flags)
 
 __declspec(dllexport) const void *WINAPI BASSplugin(DWORD face)
 {
+	static const BASS_PLUGINFORM pluginform = {
+		BASS_CTYPE_MUSIC_ASAP, "ASAP", "*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc"
+	};
+	static const BASS_PLUGININFO plugininfo = { MAKELONG(MAKEWORD(ASAPInfo_VERSION_MINOR, ASAPInfo_VERSION_MAJOR), BASSVERSION), 1, &pluginform };
 	switch (face) {
 	case BASSPLUGIN_INFO:
 		return &plugininfo;
