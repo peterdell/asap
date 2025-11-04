@@ -158,10 +158,30 @@ static DWORD WINAPI ASAP_GetFileInfo(const char *filename, XMPFILE file, float *
 	return songs + XMPIN_INFO_NOSUBTAGS;
 }
 
+typedef struct {
+	int (*load)(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length);
+} ASAPFileLoaderVtbl;
+
+struct ASAPFileLoader {
+	const ASAPFileLoaderVtbl *vtbl;
+};
+
+static int loader_load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
+{
+	XMPFILE file = xmpffile->Open(filename);
+	if (file == NULL)
+		return -1;
+	length = xmpffile->Read(file, buffer, length);
+	xmpffile->Close(file);
+	return length;
+}
+
 static DWORD WINAPI ASAP_Open(const char *filename, XMPFILE file)
 {
 	module_len = xmpffile->Read(file, module, sizeof(module));
-	if (!ASAP_Load(asap, filename, module, module_len))
+	static const ASAPFileLoaderVtbl loader_vtbl = { loader_load };
+	static const ASAPFileLoader loader = { &loader_vtbl };
+	if (!ASAP_LoadWithExtraFiles(asap, filename, module, module_len, &loader))
 		return 0;
 	setPlayingSong(filename, 0);
 	PlaySong(0);
@@ -330,7 +350,7 @@ __declspec(dllexport) XMPIN *WINAPI XMPIN_GetInterface(DWORD face, InterfaceProc
 	static XMPIN xmpin = {
 		0,
 		"ASAP",
-		"ASAP\0sap/cmc/cm3/cmr/cms/dmc/dlt/mpt/mpd/rmt/tmc/tm8/tm2/fc",
+		"ASAP\0sap/cmc/cm3/cmr/cms/dmc/dlt/mpt/md1/md2/mpd/rmt/tmc/tm8/tm2/fc",
 		ASAP_About,
 		ASAP_Config,
 		ASAP_CheckFile,
