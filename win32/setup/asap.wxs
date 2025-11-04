@@ -313,10 +313,11 @@
 								<RegistryValue Root="HKCR" Key="asap.file" Name="vlc" Type="integer" Value="1" KeyPath="yes" />
 								<ProgId Id="VLC.sap">
 									<Extension Id="sap">
-										<Verb Id="open" TargetProperty="VLC.EXE" Argument="--started-from-file &quot;%1&quot;" />
+										<Verb Id="open" TargetProperty="VLC.EXE" Argument="--demux=asap --started-from-file &quot;%1&quot;" />
 									</Extension>
-									<Extension Id="fc" />
-									<Extension Id="rmt" />
+									<?foreach EXT in $(var.NATIVE_EXTS)?>
+										<Extension Id="$(var.EXT)" />
+									<?endforeach?>
 								</ProgId>
 							</Component>
 						</Directory>
@@ -421,10 +422,10 @@
 		</Feature>
 		<?endif?>
 
-		<Feature Id="libasap_plugin" Title="VLC $(var.PLATFORM_BITS) plugin" Level="9" ConfigurableDirectory="VLC.DIR" Description="Plugin for $(var.PLATFORM_BITS) VLC 3 (SAP and FC formats only)." AllowAdvertise="no">
+		<Feature Id="libasap_plugin" Title="VLC $(var.PLATFORM_BITS) plugin" Level="9" ConfigurableDirectory="VLC.DIR" Description="Plugin for $(var.PLATFORM_BITS) VLC 3." AllowAdvertise="no">
 			<Level Value="1" Condition="VLC.DIR" />
 			<ComponentRef Id="libasap_plugin.dll" />
-			<Feature Id="libasap_plugin.ext" Title="Associate file types" Level="0" Description="Double-click SAP file in Windows Explorer to play it in VLC." AllowAdvertise="no">
+			<Feature Id="libasap_plugin.ext" Title="Associate file types" Level="0" Description="$(var.DOUBLECLICK) VLC." AllowAdvertise="no">
 				<Level Value="9" Condition="VLC.EXE" />
 				<ComponentRef Id="libasap_plugin.ext" />
 			</Feature>
