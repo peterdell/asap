@@ -149,9 +149,10 @@ static HSTREAM WINAPI StreamCreateProc(BASSFILE file, DWORD flags)
 	const char *filename = (const char *) bassfunc->file.GetFileName(file, &unicode);
 	char aFilename[MAX_PATH];
 	if (filename != NULL && unicode) {
-		if (WideCharToMultiByte(CP_ACP, 0, (LPCWSTR) filename, -1, aFilename, MAX_PATH, NULL, NULL) <= 0)
-			error(BASS_ERROR_NOTFILE);
-		filename = aFilename;
+		if (WideCharToMultiByte(CP_ACP, 0, (LPCWSTR) filename, -1, aFilename, MAX_PATH, NULL, NULL) > 0)
+			filename = aFilename;
+		else
+			filename = NULL;
 	}
 	byte module[ASAPInfo_MAX_MODULE_LENGTH];
 	int module_len = bassfunc->file.Read(file, module, sizeof(module));
