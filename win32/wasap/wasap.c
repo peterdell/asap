@@ -403,7 +403,11 @@ static void SaveWav(void)
 		duration = 180000;
 	}
 	ASAP_PlaySong(asap, current_song, duration);
-	combineFilenameExt(wav_filename, current_filename, _T("wav"));
+
+	size_t filenameChars = _tcsrchr(current_filename, '.') + 1 - current_filename;
+	memcpy(wav_filename, current_filename, filenameChars * sizeof(_TCHAR));
+	_tcscpy(wav_filename + filenameChars, _T("wav"));
+
 	popupShown = true;
 	static OPENFILENAME ofn = {
 		sizeof(OPENFILENAME),

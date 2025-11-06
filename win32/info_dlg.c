@@ -35,73 +35,38 @@
 #include "aatr-stdio.h"
 #endif
 
-void combineFilenameExt(LPTSTR dest, LPCTSTR filename, LPCTSTR ext)
-{
-	size_t filenameChars = _tcsrchr(filename, '.') + 1 - filename;
-	memcpy(dest, filename, filenameChars * sizeof(_TCHAR));
-	_tcscpy(dest + filenameChars, ext);
-}
-
-#ifdef WINAMP
-LPCTSTR atrFilenameHash(LPCTSTR filename)
-{
-	for ( ; *filename != '\0'; filename++) {
-		if (_tcsnicmp(filename, _T(".atr#"), 5) == 0)
-			return filename + 4;
-	}
-	return NULL;
-}
-#endif
-
-bool loadModule(LPCTSTR filename, BYTE *module, int *module_len)
-{
-	bool ok;
-#ifdef WINAMP
-	LPCTSTR hash = atrFilenameHash(filename);
-	if (hash != NULL && hash < filename + MAX_PATH) {
-		_TCHAR atr_filename[MAX_PATH];
-		memcpy(atr_filename, filename, (hash - filename) * sizeof(_TCHAR));
-		atr_filename[hash - filename] = '\0';
-		ok = false;
-		AATR *disk = AATRStdio_New(atr_filename);
-		if (disk != NULL) {
-			AATRDirectory *directory = AATRDirectory_New();
-			if (directory != NULL) {
-				AATRDirectory_OpenRoot(directory, disk);
-				if (AATRDirectory_FindEntryRecursively(directory, hash + 1) && !AATRDirectory_IsEntryDirectory(directory)) {
-					AATRFileStream *stream = AATRFileStream_New();
-					if (stream != NULL) {
-						AATRFileStream_Open(stream, directory);
-						*module_len = AATRFileStream_Read(stream, module, 0, ASAPInfo_MAX_MODULE_LENGTH);
-						ok = *module_len >= 0;
-						AATRFileStream_Delete(stream);
-					}
-				}
-				AATRDirectory_Delete(directory);
-			}
-			AATRStdio_Delete(disk);
-		}
-		return ok;
-	}
-#endif
-	HANDLE fh = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (fh == INVALID_HANDLE_VALUE)
-		return false;
-	ok = ReadFile(fh, module, ASAPInfo_MAX_MODULE_LENGTH, (LPDWORD) module_len, NULL);
-	CloseHandle(fh);
-	return ok;
-}
-
 typedef struct {
 	int (*load)(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length);
 } ASAPFileLoaderVtbl;
 
 struct ASAPFileLoader {
 	const ASAPFileLoaderVtbl *vtbl;
+#ifdef WINAMP
+	AATR *disk;
+#endif
 };
 
-static int loader_load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
+static int ASAPFileLoader_Load(const ASAPFileLoader *self, const char *filename, uint8_t *buffer, int length)
 {
+#ifdef WINAMP
+	if (self->disk != NULL) {
+		AATRDirectory *directory = AATRDirectory_New();
+		if (directory == NULL)
+			return -1;
+		AATRDirectory_OpenRoot(directory, self->disk);
+		int result = -1;
+		if (AATRDirectory_FindEntryRecursively(directory, filename) && !AATRDirectory_IsEntryDirectory(directory)) {
+			AATRFileStream *stream = AATRFileStream_New();
+			if (stream != NULL) {
+				AATRFileStream_Open(stream, directory);
+				result = AATRFileStream_Read(stream, buffer, 0, length);
+				AATRFileStream_Delete(stream);
+			}
+		}
+		AATRDirectory_Delete(directory);
+		return result;
+	}
+#endif
 	HANDLE fh = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (fh == INVALID_HANDLE_VALUE)
 		return -1;
@@ -110,21 +75,80 @@ static int loader_load(const ASAPFileLoader *self, const char *filename, uint8_t
 	return ok ? length : -1;
 }
 
+static ASAPFileLoader *ASAPFileLoader_Open(const char **filename)
+{
+	static const ASAPFileLoaderVtbl loader_vtbl = { ASAPFileLoader_Load };
+	static ASAPFileLoader loader = { &loader_vtbl };
+#ifdef WINAMP
+	loader.disk = NULL;
+	const char *f = *filename;
+	for (int i = 0; i < MAX_PATH - 4 && f[i] != '\0'; i++) {
+		if (_strnicmp(f + i, ".atr#", 5) == 0) {
+			i += 4;
+			char atr_filename[MAX_PATH];
+			memcpy(atr_filename, f, i);
+			atr_filename[i] = '\0';
+			AATR *disk = AATRStdio_New(atr_filename);
+			if (disk == NULL)
+				return NULL;
+			*filename = f + i + 1;
+			loader.disk = disk;
+			break;
+		}
+	}
+#endif
+	return &loader;
+}
+
+static void ASAPFileLoader_Close(ASAPFileLoader *self)
+{
+#ifdef WINAMP
+	if (self->disk != NULL)
+		AATRStdio_Delete(self->disk);
+#endif
+}
+
+static bool loadInfoInternal(ASAPInfo *info, const char *filename, uint8_t *module, int *module_len)
+{
+	ASAPFileLoader *loader = ASAPFileLoader_Open(&filename);
+	if (loader == NULL)
+		return false;
+	*module_len = ASAPFileLoader_Load(loader, filename, module, ASAPInfo_MAX_MODULE_LENGTH);
+	ASAPFileLoader_Close(loader);
+	return *module_len >= 0 && ASAPInfo_Load(info, filename, module, *module_len);
+}
+
+bool loadInfo(ASAPInfo *info, const char *filename)
+{
+	uint8_t module[ASAPInfo_MAX_MODULE_LENGTH];
+	int module_len;
+	return loadInfoInternal(info, filename, module, &module_len);
+}
+
 bool loadFiles(ASAP *asap, LPCTSTR filename)
 {
 #ifdef _UNICODE
 	static char ansi_filename[MAX_PATH];
 	if (WideCharToMultiByte(CP_ACP, 0, filename, -1, ansi_filename, MAX_PATH, NULL, NULL) <= 0) {
-		ShowError(_T("Invalid characters in filename"));
-		return false;
+		HANDLE fh = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (fh == INVALID_HANDLE_VALUE)
+			return false;
+		uint8_t module[ASAPInfo_MAX_MODULE_LENGTH];
+		int module_len;
+		BOOL ok = ReadFile(fh, module, ASAPInfo_MAX_MODULE_LENGTH, (LPDWORD) &module_len, NULL);
+		CloseHandle(fh);
+		return ok && ASAP_Load(asap, NULL, module, module_len);
 	}
+	const char *filename2 = ansi_filename;
 #else
-#define ansi_filename filename
+	const char *filename2 = filename;
 #endif
-	static const ASAPFileLoaderVtbl loader_vtbl = { loader_load };
-	static const ASAPFileLoader loader = { &loader_vtbl };
-	return ASAP_LoadFiles(asap, ansi_filename, &loader);
-#undef ansi_filename
+	ASAPFileLoader *loader = ASAPFileLoader_Open(&filename2);
+	if (loader == NULL)
+		return false;
+	bool ok = ASAP_LoadFiles(asap, filename2, loader);
+	ASAPFileLoader_Close(loader);
+	return ok;
 }
 
 HWND infoDialog = NULL;
@@ -712,8 +736,7 @@ void updateInfoDialog(LPCTSTR filename, int song)
 	}
 	else if (infoChanged())
 		return;
-	if (!loadModule(filename, saved_module, &saved_module_len)
-	 || !ASAPInfo_Load(edited_info, filename, saved_module, saved_module_len)) {
+	if (!loadInfoInternal(edited_info, filename, saved_module, &saved_module_len)) {
 		closeInfoDialog();
 		return;
 	}

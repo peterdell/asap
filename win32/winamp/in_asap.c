@@ -1,7 +1,7 @@
 /*
  * in_asap.c - ASAP plugin for Winamp
  *
- * Copyright (C) 2005-2023  Piotr Fusik
+ * Copyright (C) 2005-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -36,8 +36,6 @@
 #include "info_dlg.h"
 #include "settings_dlg.h"
 
-LPCTSTR atrFilenameHash(LPCTSTR filename);
-
 // Winamp's equalizer works only with 16-bit samples
 #define SUPPORT_EQUALIZER  1
 
@@ -54,8 +52,6 @@ static const char *ini_file;
 // current file
 ASAP *asap;
 static char playing_filename_with_song[MAX_PATH + 3] = "";
-static BYTE module[ASAPInfo_MAX_MODULE_LENGTH];
-static int module_len;
 static int duration;
 
 static int playlistLength;
@@ -144,8 +140,7 @@ static void expandFileSongs(HWND playlistWnd, int index, ASAPInfo *info)
 	if (song >= 0)
 		return;
 	if (ASAPInfo_IsOurFile(fi.file)) {
-		if (loadModule(fi.file, module, &module_len)
-		 && ASAPInfo_Load(info, fi.file, module, module_len)) {
+		if (loadInfo(info, fi.file)) {
 			SendMessage(playlistWnd, WM_WA_IPC, IPC_PE_DELETEINDEX, index);
 			addFileSongs(playlistWnd, &fi, info, &index);
 		}
@@ -167,7 +162,8 @@ static void expandFileSongs(HWND playlistWnd, int index, ASAPInfo *info)
 							break;
 						if (ASAPInfo_IsOurFile(inside_fn)) {
 							AATRFileStream_Open(stream, AATRRecursiveLister_GetDirectory(lister));
-							module_len = AATRFileStream_Read(stream, module, 0, sizeof(module));
+							uint8_t module[ASAPInfo_MAX_MODULE_LENGTH];
+							int module_len = AATRFileStream_Read(stream, module, 0, sizeof(module));
 							if (ASAPInfo_Load(info, inside_fn, module, module_len)) {
 								size_t inside_fn_len = strlen(inside_fn);
 								if (atr_fn_len + inside_fn_len + 4 <= sizeof(fi.file)) {
@@ -281,10 +277,7 @@ static void getFileInfo(char *file, char *title, int *length_in_ms)
 	title_song = extractSongNumber(file, filename);
 	if (title_song < 0)
 		expandPlaylistSongs();
-	if (!loadModule(filename, module, &module_len))
-		return;
-	const char *hash = atrFilenameHash(filename);
-	if (!ASAPInfo_Load(title_info, hash != NULL ? hash + 1 : filename, module, module_len))
+	if (!loadInfo(title_info, filename))
 		return;
 	if (title_song < 0)
 		title_song = ASAPInfo_GetDefaultSong(title_info);
@@ -368,9 +361,7 @@ static int play(char *fn)
 	strcpy(playing_filename_with_song, fn);
 	char filename[MAX_PATH];
 	int song = extractSongNumber(fn, filename);
-	if (!loadModule(filename, module, &module_len))
-		return -1;
-	if (!ASAP_Load(asap, filename, module, module_len))
+	if (!loadFiles(asap, filename))
 		return 1;
 	const ASAPInfo *info = ASAP_GetInfo(asap);
 	if (song < 0)
@@ -462,7 +453,7 @@ static In_Module mod = {
 	"SAP\0Slight Atari Player (*.SAP)\0"
 	"CMC;CM3;CMR;CMS;DMC\0Chaos Music Composer (*.CMC;*.CM3;*.CMR;*.CMS;*.DMC)\0"
 	"DLT\0Delta Music Composer (*.DLT)\0"
-	"MPT;MPD\0Music ProTracker (*.MPT;*.MPD)\0"
+	"MPT;MD1;MD2;MPD\0Music ProTracker (*.MPT;*.MD1;*.MD2;*.MPD)\0"
 	"RMT\0Raster Music Tracker (*.RMT)\0"
 	"TMC;TM8\0Theta Music Composer 1.x (*.TMC;*.TM8)\0"
 	"TM2\0Theta Music Composer 2.x (*.TM2)\0"

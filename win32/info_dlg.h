@@ -49,8 +49,7 @@ extern "C" {
 #define IDD_PROGRESS   500
 #define IDC_PROGRESS   501
 
-void combineFilenameExt(LPTSTR dest, LPCTSTR filename, LPCTSTR ext);
-bool loadModule(LPCTSTR filename, BYTE *module, int *module_len);
+bool loadInfo(ASAPInfo *info, const char *filename);
 bool loadFiles(ASAP *asap, LPCTSTR filename);
 
 extern HWND infoDialog;
