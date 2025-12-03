@@ -19,12 +19,12 @@
 // along with ASAP; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+#if !ASAP_ONLY_SAP && !OPENCL
 public abstract class ASAPFileLoader
 {
 	public abstract int Load(string filename, byte[]! buffer, int length);
 }
 
-#if !ASAP_ONLY_SAP && !OPENCL
 class ASAPMptSamples
 {
 	const int MinLength = 32 + 256;
@@ -389,6 +389,7 @@ public class ASAP
 		int moduleLen)
 		throws ASAPFormatException
 	{
+#if !ASAP_ONLY_SAP && !OPENCL
 		LoadWithExtraFiles(filename, module, moduleLen, null);
 	}
 
@@ -419,6 +420,7 @@ public class ASAP
 		ASAPFileLoader? loader)
 		throws ASAPFormatException
 	{
+#endif
 		ModuleInfo.Load(filename, module, moduleLen);
 #if !ASAP_ONLY_SAP
 		byte[]? playerRoutine = ASAP6502.GetPlayerRoutine(ModuleInfo);
