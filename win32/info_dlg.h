@@ -22,7 +22,6 @@
  */
 
 #include <windows.h>
-#include <tchar.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -50,12 +49,12 @@ extern "C" {
 #define IDC_PROGRESS   501
 
 bool loadInfo(ASAPInfo *info, const char *filename);
-bool loadFiles(ASAP *asap, LPCTSTR filename);
+bool loadFiles(ASAP *asap, const char *filename);
 
 extern HWND infoDialog;
-void showInfoDialog(HINSTANCE hInstance, HWND hwndParent, LPCTSTR filename, int song);
-void updateInfoDialog(LPCTSTR filename, int song);
-void setPlayingSong(LPCTSTR filename, int song);
+void showInfoDialog(HINSTANCE hInstance, HWND hwndParent, const char *filename, int song);
+void updateInfoDialog(const char *filename, int song);
+void setPlayingSong(const char *filename, int song);
 #ifdef FOOBAR2000
 void setDarkInfoDialog(HWND hDlg);
 void releaseDarkInfoDialog(void);
