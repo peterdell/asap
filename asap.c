@@ -485,10 +485,15 @@ static bool ASAPNativeModuleWriter_RelocateWords(const ASAPNativeModuleWriter *s
 
 static bool ASAPNativeModuleWriter_Write(ASAPNativeModuleWriter *self, const ASAPInfo *info, ASAPModuleType type, int moduleLen);
 
+typedef struct {
+	bool (*save)(ASAPWriter *self, const char *filename, uint8_t const *buffer, int offset, int length);
+} ASAPWriterVtbl;
 /**
- * Static methods for writing modules in different formats.
+ * Converter between the SAP format, native module formats
+ * and the Atari 8-bit XEX executables.
  */
 struct ASAPWriter {
+	const ASAPWriterVtbl *vtbl;
 	uint8_t *output;
 	int outputOffset;
 	int outputEnd;
@@ -537,7 +542,7 @@ static bool ASAPWriter_WriteXexInfoTextDl(ASAPWriter *self, int address, int len
 
 static bool ASAPWriter_WriteXexInfo(ASAPWriter *self, const ASAPInfo *info);
 
-static bool ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen);
+static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, uint8_t const *buffer, int offset, int length);
 
 struct FlashPackItem {
 	FlashPackItemType type;
@@ -4745,6 +4750,10 @@ static bool ASAPNativeModuleWriter_Write(ASAPNativeModuleWriter *self, const ASA
 
 static void ASAPWriter_Construct(ASAPWriter *self)
 {
+	static const ASAPWriterVtbl vtbl = {
+		ASAPWriter_Save,
+	};
+	self->vtbl = &vtbl;
 }
 
 ASAPWriter *ASAPWriter_New(void)
@@ -5553,7 +5562,7 @@ static bool ASAPWriter_WriteXexInfo(ASAPWriter *self, const ASAPInfo *info)
 	return ASAPWriter_WriteBytes(self, FuResource_xexinfo_obx, 6, 178);
 }
 
-static bool ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen)
+int ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen)
 {
 	ASAPNativeModuleWriter nativeWriter;
 	nativeWriter.writer = self;
@@ -5565,106 +5574,124 @@ static bool ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8
 		int offset = ASAPInfo_GetRmtSapOffset(info, module, moduleLen);
 		if (offset > 0) {
 			nativeWriter.sourceOffset = offset - 2;
-			return ASAPNativeModuleWriter_Write(&nativeWriter, info, ASAPModuleType_RMT, moduleLen - offset + 2);
+			if (!ASAPNativeModuleWriter_Write(&nativeWriter, info, ASAPModuleType_RMT, moduleLen - offset + 2))
+				return -1;
+			break;
 		}
 		nativeWriter.sourceOffset = info->headerLen;
 		int blockLen = ASAPNativeModuleWriter_GetWord(&nativeWriter, 4) - ASAPNativeModuleWriter_GetWord(&nativeWriter, 2) + 7;
 		if (blockLen < 7 || info->headerLen + blockLen >= moduleLen)
-			return false;
+			return -1;
 		if (info->originalType == ASAPModuleType_FC) {
 			if (!ASAPWriter_WriteBytes(self, module, info->headerLen + 6, info->headerLen + blockLen))
-				return false;
+				return -1;
 		}
 		else {
 			if (!ASAPNativeModuleWriter_Write(&nativeWriter, info, info->originalType, blockLen))
-				return false;
+				return -1;
 		}
 		break;
 	case ASAPModuleType_FC:
-		return ASAPWriter_WriteBytes(self, module, 0, moduleLen);
+		if (!ASAPWriter_WriteBytes(self, module, 0, moduleLen))
+			return -1;
+		break;
 	default:
 		nativeWriter.sourceOffset = 0;
 		if (!ASAPNativeModuleWriter_Write(&nativeWriter, info, info->type, moduleLen))
-			return false;
+			return -1;
 		break;
 	}
+	return self->outputOffset;
+}
+
+int ASAPWriter_WriteSap(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen)
+{
+	return ASAPWriter_WriteExecutable(self, NULL, info, module, moduleLen) ? self->outputOffset : -1;
+}
+
+static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, uint8_t const *buffer, int offset, int length)
+{
 	return true;
 }
 
-int ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPInfo *info, uint8_t const *module, int moduleLen, bool tag)
+bool ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPInfo *info, uint8_t const *module, int moduleLen, bool tag)
 {
 	int destExt = ASAPInfo_GetPackedExt(targetFilename);
 	switch (destExt) {
 	case 7364979:
-		return ASAPWriter_WriteExecutable(self, NULL, info, module, moduleLen) ? self->outputOffset : -1;
+		if (!ASAPWriter_WriteExecutable(self, NULL, info, module, moduleLen))
+			return false;
+		return self->vtbl->save(self, targetFilename, self->output, 0, self->outputOffset);
 	case 7890296:
 		{
 			int initAndPlayer[2];
 			if (!ASAPWriter_WriteExecutable(self, initAndPlayer, info, module, moduleLen))
-				return -1;
+				return false;
 			switch (info->type) {
 			case ASAPModuleType_SAP_D:
 				if (ASAPInfo_GetPlayerRateScanlines(info) != 312)
-					return -1;
+					return false;
 				if (!ASAPWriter_WriteBytes(self, FuResource_xexd_obx, 2, 114))
-					return -1;
+					return false;
 				if (!ASAPWriter_WriteWord(self, initAndPlayer[0]))
-					return -1;
+					return false;
 				if (initAndPlayer[1] < 0) {
 					if (!ASAPWriter_WriteByte(self, 96))
-						return -1;
+						return false;
 					if (!ASAPWriter_WriteByte(self, 96))
-						return -1;
+						return false;
 					if (!ASAPWriter_WriteByte(self, 96))
-						return -1;
+						return false;
 				}
 				else {
 					if (!ASAPWriter_WriteByte(self, 76))
-						return -1;
+						return false;
 					if (!ASAPWriter_WriteWord(self, initAndPlayer[1]))
-						return -1;
+						return false;
 				}
 				if (!ASAPWriter_WriteByte(self, ASAPInfo_GetDefaultSong(info)))
-					return -1;
+					return false;
 				break;
 			case ASAPModuleType_SAP_S:
-				return -1;
+				return false;
 			default:
 				if (!ASAPWriter_WriteBytes(self, FuResource_xexb_obx, 2, 183))
-					return -1;
+					return false;
 				if (!ASAPWriter_WriteWord(self, initAndPlayer[0]))
-					return -1;
+					return false;
 				if (!ASAPWriter_WriteByte(self, 76))
-					return -1;
+					return false;
 				if (!ASAPWriter_WriteWord(self, initAndPlayer[1]))
-					return -1;
+					return false;
 				if (!ASAPWriter_WriteByte(self, ASAPInfo_GetDefaultSong(info)))
-					return -1;
+					return false;
 				int fastplay = ASAPInfo_GetPlayerRateScanlines(info);
 				if (!ASAPWriter_WriteByte(self, fastplay & 1))
-					return -1;
+					return false;
 				if (!ASAPWriter_WriteByte(self, (fastplay >> 1) % 156))
-					return -1;
+					return false;
 				if (!ASAPWriter_WriteByte(self, (fastplay >> 1) % 131))
-					return -1;
+					return false;
 				if (!ASAPWriter_WriteByte(self, fastplay / 312))
-					return -1;
+					return false;
 				if (!ASAPWriter_WriteByte(self, fastplay / 262))
-					return -1;
+					return false;
 				break;
 			}
 			if (tag) {
 				if (!ASAPWriter_WriteXexInfo(self, info))
-					return -1;
+					return false;
 			}
 			if (!ASAPWriter_WriteWord(self, 736))
-				return -1;
+				return false;
 			if (!ASAPWriter_WriteWord(self, 737))
-				return -1;
+				return false;
 			if (!ASAPWriter_WriteWord(self, tag ? 256 : 292))
-				return -1;
+				return false;
 			FlashPack flashPack;
-			return FlashPack_Compress(&flashPack, self) ? self->outputOffset : -1;
+			if (!FlashPack_Compress(&flashPack, self))
+				return false;
+			return self->vtbl->save(self, targetFilename, self->output, 0, self->outputOffset);
 		}
 	default:
 		;
@@ -5672,10 +5699,12 @@ int ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPInf
 		if (possibleExt != NULL) {
 			int packedPossibleExt = ASAPInfo_PackExt(possibleExt);
 			if (destExt == packedPossibleExt || (destExt == 3698036 && packedPossibleExt == 6516084)) {
-				return ASAPWriter_WriteNative(self, info, module, moduleLen) ? self->outputOffset : -1;
+				if (ASAPWriter_WriteNative(self, info, module, moduleLen) == -1)
+					return false;
+				return self->vtbl->save(self, targetFilename, self->output, 0, self->outputOffset);
 			}
 		}
-		return -1;
+		return false;
 	}
 }
 

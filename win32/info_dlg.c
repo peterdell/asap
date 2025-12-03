@@ -141,7 +141,7 @@ HWND infoDialog = NULL;
 static char playing_filename[MAX_PATH];
 static int playing_song = 0;
 bool playing_info = false;
-static byte saved_module[ASAPInfo_MAX_MODULE_LENGTH];
+static uint8_t saved_module[ASAPInfo_MAX_MODULE_LENGTH];
 static int saved_module_len;
 static ASAPInfo *edited_info = NULL;
 static int edited_song;
@@ -446,31 +446,32 @@ static void toggleCalendar(HWND hDlg)
 	}
 }
 
+typedef struct {
+	bool (*save)(ASAPWriter *self, const char *filename, const uint8_t *buffer, int offset, int length);
+} ASAPWriterVtbl;
+
+static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, const uint8_t *buffer, int offset, int length)
+{
+	HANDLE fh = CreateFileA(filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (fh == INVALID_HANDLE_VALUE)
+		return false;
+	bool ok = WriteFile(fh, buffer, length, (LPDWORD) &length, NULL) != 0;
+	CloseHandle(fh);
+	return ok;
+}
+
 static bool doSaveFile(const char *filename, bool tag)
 {
 	ASAPWriter *writer = ASAPWriter_New();
 	if (writer == NULL)
 		return false;
-	byte output[ASAPInfo_MAX_MODULE_LENGTH];
+	static const ASAPWriterVtbl writer_vtbl = { ASAPWriter_Save };
+	*(const ASAPWriterVtbl **) writer = &writer_vtbl;
+	uint8_t output[ASAPInfo_MAX_MODULE_LENGTH];
 	ASAPWriter_SetOutput(writer, output, 0, sizeof(output));
-	int output_len = ASAPWriter_Write(writer, filename, edited_info, saved_module, saved_module_len, tag);
+	bool ok = ASAPWriter_Write(writer, filename, edited_info, saved_module, saved_module_len, tag);
 	ASAPWriter_Delete(writer);
-	if (output_len < 0)
-		return false;
-
-	FILE *fp = fopen(filename, "wb");
-	if (fp == NULL)
-		return false;
-	if (fwrite(output, output_len, 1, fp) != 1) {
-		fclose(fp);
-		DeleteFile(filename);
-		return false;
-	}
-	if (fclose(fp) != 0) {
-		DeleteFile(filename);
-		return false;
-	}
-	return true;
+	return ok;
 }
 
 static bool saveFile(const char *filename, bool tag)

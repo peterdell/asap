@@ -109,7 +109,7 @@ class CASAPMetadataHandler final : IInitializeWithStream, IPropertyStore, IPrope
 		if (WideCharToMultiByte(CP_UTF8, 0, wszFile, -1, filename, cbFilename, nullptr, nullptr) <= 0)
 			return HRESULT_FROM_WIN32(GetLastError());
 
-		byte module[ASAPInfo::maxModuleLength];
+		uint8_t module[ASAPInfo::maxModuleLength];
 		int module_len;
 		if (pstream != nullptr) {
 			HRESULT hr = pstream->Read(module, ASAPInfo::maxModuleLength, reinterpret_cast<ULONG *>(&module_len));
@@ -424,15 +424,15 @@ public:
 		liZero.HighPart = 0;
 		HRESULT hr = m_pstream->Seek(liZero, STREAM_SEEK_SET, nullptr);
 		if (SUCCEEDED(hr)) {
-			byte module[ASAPInfo::maxModuleLength];
+			uint8_t module[ASAPInfo::maxModuleLength];
 			int module_len;
 			hr = m_pstream->Read(module, ASAPInfo::maxModuleLength, reinterpret_cast<ULONG *>(&module_len));
 			if (SUCCEEDED(hr)) {
-				byte output[ASAPInfo::maxModuleLength];
+				uint8_t output[ASAPInfo::maxModuleLength];
 				{
 					ASAPWriter writer;
 					writer.setOutput(output, 0, sizeof(output));
-					module_len = writer.write("dummy.sap", &m_info, module, module_len, false);
+					module_len = writer.writeSap(&m_info, module, module_len);
 				}
 				if (module_len < 0)
 					hr = E_FAIL;

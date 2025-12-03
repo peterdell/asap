@@ -298,7 +298,7 @@ public:
 			throw exception_io_data();
 		BYTE output[ASAPInfo_MAX_MODULE_LENGTH];
 		ASAPWriter_SetOutput(writer, output, 0, sizeof(output));
-		int output_len = ASAPWriter_Write(writer, url, ASAP_GetInfo(asap), module, module_len, false);
+		int output_len = ASAPWriter_WriteSap(writer, ASAP_GetInfo(asap), module, module_len);
 		ASAPWriter_Delete(writer);
 		if (output_len < 0)
 			throw exception_io_unsupported_format();

@@ -199,10 +199,9 @@ static ASAP *load_module(const char *input_file)
 	return asap;
 }
 
-static FILE *open_output_file(const char *input_file, const ASAPInfo *info, bool allow_file_per_song)
+static bool get_output_file(const char *input_file, const ASAPInfo *info, bool allow_file_per_song)
 {
 	const char *output_ext = strrchr(arg_output, '.');
-	FILE *fp = NULL;
 	if (output_ext == arg_output) {
 		/* .EXT */
 	}
@@ -214,13 +213,6 @@ static FILE *open_output_file(const char *input_file, const ASAPInfo *info, bool
 	}
 	else {
 		/* FILE.EXT or -.EXT */
-		if (output_ext == arg_output + 1 && arg_output[0] == '-') {
-			/* -.EXT */
-#ifdef _WIN32
-			_setmode(_fileno(stdout), _O_BINARY);
-#endif
-			fp = stdout;
-		}
 		output_ext = NULL; /* don't insert input_file */
 	}
 
@@ -262,7 +254,7 @@ static FILE *open_output_file(const char *input_file, const ASAPInfo *info, bool
 					if (arg_song >= 0)
 						fatal_error("-s and %%s are mutually exclusive");
 					if (++current_song >= ASAPInfo_GetSongs(info))
-						return NULL;
+						return false;
 					file_per_song = true;
 				}
 				sprintf(song_tag, "%d", current_song + 1);
@@ -273,7 +265,7 @@ static FILE *open_output_file(const char *input_file, const ASAPInfo *info, bool
 				break;
 			default:
 				fatal_error("unrecognized %%%c", c);
-				return NULL;
+				return false;
 			}
 			while (*tag != '\0') {
 				if (output_ptr >= output_file + sizeof(output_file) - 1)
@@ -306,7 +298,7 @@ static FILE *open_output_file(const char *input_file, const ASAPInfo *info, bool
 
 	if (!file_per_song) {
 		if (current_song >= 0)
-			return NULL;
+			return false;
 		if (arg_song < 0)
 			current_song = ASAPInfo_GetDefaultSong(info);
 		else if (arg_song >= ASAPInfo_GetSongs(info)) {
@@ -317,13 +309,27 @@ static FILE *open_output_file(const char *input_file, const ASAPInfo *info, bool
 		else
 			current_song = arg_song;
 	}
+	return true;
+}
 
-	if (fp == NULL) {
-		fp = fopen(output_file, "wb");
-		if (fp == NULL)
-			fatal_error("cannot write %s", output_file);
+static FILE *create_file(const char *filename)
+{
+	if (arg_output[0] == '-' && arg_output[1] == '.') {
+		/* -.EXT */
+#ifdef _WIN32
+		_setmode(_fileno(stdout), _O_BINARY);
+#endif
+		return stdout;
 	}
+	FILE *fp = fopen(filename, "wb");
+	if (fp == NULL)
+		fatal_error("cannot write %s", filename);
 	return fp;
+}
+
+static FILE *open_output_file(const char *input_file, const ASAPInfo *info, bool allow_file_per_song)
+{
+	return get_output_file(input_file, info, allow_file_per_song) ? create_file(output_file) : NULL;
 }
 
 static int play_song(const char *input_file, ASAP *asap)
@@ -340,7 +346,7 @@ static int play_song(const char *input_file, ASAP *asap)
 	return duration;
 }
 
-static void write_output_file(FILE *fp, uint8_t *buffer, int n_bytes)
+static void write_output_file(FILE *fp, const uint8_t *buffer, int n_bytes)
 {
 	if (fwrite(buffer, 1, n_bytes, fp) != n_bytes) {
 		if (fp != stdout)
@@ -351,10 +357,8 @@ static void write_output_file(FILE *fp, uint8_t *buffer, int n_bytes)
 
 static void close_output_file(FILE *fp)
 {
-	if (fp != stdout) {
-		if (fclose(fp) != 0)
-			fatal_error("error closing %s", output_file);
-	}
+	if (fp != stdout && fclose(fp) != 0)
+		fatal_error("error closing %s", output_file);
 }
 
 static void convert_to_wav(const char *input_file, bool output_header)
@@ -517,6 +521,18 @@ static void convert_to_mp3(const char *input_file)
 
 #endif /* HAVE_LIBMP3LAME */
 
+typedef struct {
+	bool (*save)(ASAPWriter *self, const char *filename, const uint8_t *buffer, int offset, int length);
+} ASAPWriterVtbl;
+
+static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, const uint8_t *buffer, int offset, int length)
+{
+	FILE *fp = create_file(filename);
+	write_output_file(fp, buffer + offset, length);
+	close_output_file(fp);
+	return true;
+}
+
 static void convert_to_module(const char *input_file, bool output_xex)
 {
 	FILE *fp = fopen(input_file, "rb");
@@ -533,6 +549,8 @@ static void convert_to_module(const char *input_file, bool output_xex)
 	ASAPWriter *writer = ASAPWriter_New();
 	if (writer == NULL)
 		fatal_error("out of memory");
+	static const ASAPWriterVtbl writer_vtbl = { ASAPWriter_Save };
+	*(const ASAPWriterVtbl **) writer = &writer_vtbl;
 	apply_tags(input_file, info);
 	if (arg_ntsc >= 0) {
 		if (!ASAPInfo_CanSetNtsc(info))
@@ -542,18 +560,15 @@ static void convert_to_module(const char *input_file, bool output_xex)
 	if (arg_music_address >= 0)
 		ASAPInfo_SetMusicAddress(info, arg_music_address);
 
-	while ((fp = open_output_file(input_file, info, output_xex)) != NULL) {
+	while (get_output_file(input_file, info, output_xex)) {
 		if (output_xex)
 			ASAPInfo_SetDefaultSong(info, current_song);
 		if (arg_duration >= 0)
 			ASAPInfo_SetDuration(info, current_song, arg_duration);
 		uint8_t output[ASAPInfo_MAX_MODULE_LENGTH];
 		ASAPWriter_SetOutput(writer, output, 0, sizeof(output));
-		int output_len = ASAPWriter_Write(writer, output_file, info, module, module_len, arg_tag);
-		if (output_len < 0)
+		if (!ASAPWriter_Write(writer, output_file, info, module, module_len, arg_tag))
 			fatal_error("%s: conversion error", input_file);
-		write_output_file(fp, output, output_len);
-		close_output_file(fp);
 	}
 
 	ASAPWriter_Delete(writer);

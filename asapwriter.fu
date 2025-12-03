@@ -24,6 +24,10 @@ public class ASAPConversionException : Exception
 {
 }
 
+public class ASAPIOException : Exception
+{
+}
+
 class ASAPNativeModuleWriter
 {
 	internal ASAPWriter!? Writer;
@@ -149,7 +153,8 @@ class ASAPNativeModuleWriter
 	}
 }
 
-/// Static methods for writing modules in different formats.
+/// Converter between the SAP format, native module formats
+/// and the Atari 8-bit XEX executables.
 public class ASAPWriter
 {
 	/// Maximum number of extensions returned by `GetSaveExts`.
@@ -757,7 +762,14 @@ public class ASAPWriter
 		WriteBytes(resource<byte[]>("xexinfo.obx"), 6, resource<byte[]>("xexinfo.obx").Length);
 	}
 
-	void WriteNative!(ASAPInfo info, byte[] module, int moduleLen)
+	/// Writes the a native module, possibly extracting it from a SAP file.
+	public uint WriteNative!(
+		/// File information got from the source file with possibly the address changed.
+		ASAPInfo info,
+		/// Contents of the source file.
+		byte[] module,
+		/// Length of the source file.
+		int moduleLen)
 		throws ASAPConversionException
 	{
 		ASAPNativeModuleWriter() nativeWriter;
@@ -773,7 +785,7 @@ public class ASAPWriter
 				// RMT-generated SAP -> RMT
 				nativeWriter.SourceOffset = offset - 2;
 				nativeWriter.Write(info, ASAPModuleType.Rmt, moduleLen - offset + 2);
-				return;
+				break;
 			}
 			nativeWriter.SourceOffset = info.HeaderLen;
 			int blockLen = nativeWriter.GetWord(4) - nativeWriter.GetWord(2) + 7;
@@ -787,17 +799,37 @@ public class ASAPWriter
 		case ASAPModuleType.Fc:
 			// FC -> FC
 			WriteBytes(module, 0, moduleLen);
-			return;
+			break;
 		default:
 			// native -> native
 			nativeWriter.SourceOffset = 0;
 			nativeWriter.Write(info, info.Type, moduleLen);
 			break;
 		}
+		return OutputOffset;
+	}
+
+	/// Writes the given module in the SAP format.
+	public uint WriteSap!(
+		/// File information got from the source file with data updated for the output file.
+		ASAPInfo info,
+		/// Contents of the source file.
+		byte[] module,
+		/// Length of the source file.
+		int moduleLen)
+		throws ASAPConversionException
+	{
+		WriteExecutable(null, info, module, moduleLen);
+		return OutputOffset;
+	}
+
+	protected virtual void Save!(string filename, byte[] buffer, int offset, int length)
+		throws ASAPIOException
+	{
 	}
 
 	/// Writes the given module in a possibly different file format.
-	public uint Write!(
+	public void Write!(
 		/// Output filename, used to determine the format.
 		string targetFilename,
 		/// File information got from the source file with data updated for the output file.
@@ -808,14 +840,15 @@ public class ASAPWriter
 		int moduleLen,
 		/// Display information (xex output only).
 		bool tag)
-		throws ASAPConversionException
+		throws ASAPConversionException, ASAPIOException
 	{
 		int destExt = ASAPInfo.GetPackedExt(targetFilename);
 		switch (destExt) {
 		case ASAPInfo.PackExt("SAP"):
 			// * -> SAP
 			WriteExecutable(null, info, module, moduleLen);
-			return OutputOffset;
+			Save(targetFilename, Output, 0, OutputOffset);
+			return;
 		case ASAPInfo.PackExt("XEX"):
 			// * -> XEX
 			{
@@ -861,7 +894,8 @@ public class ASAPWriter
 				WriteWord(tag ? 0x100 : 0x124); // must match xexinfo.asx, xexb.asx, xexd.asx
 				FlashPack() flashPack;
 				flashPack.Compress(this);
-				return OutputOffset;
+				Save(targetFilename, Output, 0, OutputOffset);
+				return;
 			}
 		default:
 			string? possibleExt = info.GetOriginalModuleExt();
@@ -871,7 +905,8 @@ public class ASAPWriter
 				 || (destExt == ASAPInfo.PackExt("TM8") && packedPossibleExt == ASAPInfo.PackExt("TMC"))) {
 					// * -> native
 					WriteNative(info, module, moduleLen);
-					return OutputOffset;
+					Save(targetFilename, Output, 0, OutputOffset);
+					return;
 				}
 			}
 			throw ASAPConversionException("Impossible conversion");

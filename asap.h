@@ -562,6 +562,26 @@ int ASAPWriter_DurationToString(uint8_t *result, int value);
 void ASAPWriter_SetOutput(ASAPWriter *self, uint8_t *output, int startIndex, int endIndex);
 
 /**
+ * Writes the a native module, possibly extracting it from a SAP file.
+ * @param self This <code>ASAPWriter</code>.
+ * @param info File information got from the source file with possibly the address changed.
+ * @param module Contents of the source file.
+ * @param moduleLen Length of the source file.
+ * @return <code>-1</code> on error.
+ */
+int ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen);
+
+/**
+ * Writes the given module in the SAP format.
+ * @param self This <code>ASAPWriter</code>.
+ * @param info File information got from the source file with data updated for the output file.
+ * @param module Contents of the source file.
+ * @param moduleLen Length of the source file.
+ * @return <code>-1</code> on error.
+ */
+int ASAPWriter_WriteSap(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen);
+
+/**
  * Writes the given module in a possibly different file format.
  * @param self This <code>ASAPWriter</code>.
  * @param targetFilename Output filename, used to determine the format.
@@ -569,9 +589,9 @@ void ASAPWriter_SetOutput(ASAPWriter *self, uint8_t *output, int startIndex, int
  * @param module Contents of the source file.
  * @param moduleLen Length of the source file.
  * @param tag Display information (xex output only).
- * @return <code>-1</code> on error.
+ * @return <code>false</code> on error.
  */
-int ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPInfo *info, uint8_t const *module, int moduleLen, bool tag);
+bool ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPInfo *info, uint8_t const *module, int moduleLen, bool tag);
 
 #ifdef __cplusplus
 }
