@@ -258,20 +258,21 @@ class FlashPack
 		// Load executable from w.Output up to w.OutputOffset into Memory
 		for (int i = 0; i < 65536; i++)
 			Memory[i] = -1;
+		byte[] input = w.GetOutput();
 		for (int i = 0; i + 5 <= w.OutputOffset; ) {
-			int startAddress = w.Output[i] + (w.Output[i + 1] << 8);
+			int startAddress = input[i] + (input[i + 1] << 8);
 			if (startAddress == 0xffff) {
 				i += 2;
-				startAddress = w.Output[i] + (w.Output[i + 1] << 8);
+				startAddress = input[i] + (input[i + 1] << 8);
 			}
-			int endAddress = w.Output[i + 2] + (w.Output[i + 3] << 8);
+			int endAddress = input[i + 2] + (input[i + 3] << 8);
 			if (startAddress > endAddress)
 				throw ASAPConversionException("Start address greater than end address");
 			i += 4;
 			if (i + endAddress - startAddress >= w.OutputOffset)
 				throw ASAPConversionException("Truncated block");
 			while (startAddress <= endAddress)
-				Memory[startAddress++] = w.Output[i++];
+				Memory[startAddress++] = input[i++];
 		}
 
 		if (Memory[0x2e0] < 0 || Memory[0x2e1] < 0)

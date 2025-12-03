@@ -553,13 +553,10 @@ int ASAPWriter_GetSaveExts(const char **exts, const ASAPInfo *info);
 int ASAPWriter_DurationToString(uint8_t *result, int value);
 
 /**
- * Sets the destination array for <code>Write</code>.
+ * Returns the internal buffer for the result of <code>WriteNative</code> and <code>WriteSap</code>.
  * @param self This <code>ASAPWriter</code>.
- * @param output The destination array.
- * @param startIndex The array offset to start writing at.
- * @param endIndex The array offset to finish writing before.
  */
-void ASAPWriter_SetOutput(ASAPWriter *self, uint8_t *output, int startIndex, int endIndex);
+uint8_t const *ASAPWriter_GetOutput(const ASAPWriter *self);
 
 /**
  * Writes the a native module, possibly extracting it from a SAP file.

@@ -243,28 +243,16 @@ public class ASAPWriter
 		return 9;
 	}
 
-	internal byte[]! Output;
 	internal int OutputOffset;
-	int OutputEnd;
+	byte[ASAPInfo.MaxModuleLength] Output;
 
-	/// Sets the destination array for `Write`.
-	public void SetOutput!(
-		/// The destination array.
-		byte[]! output,
-		/// The array offset to start writing at.
-		int startIndex,
-		/// The array offset to finish writing before.
-		int endIndex)
-	{
-		Output = output;
-		OutputOffset = startIndex;
-		OutputEnd = endIndex;
-	}
+	/// Returns the internal buffer for the result of `WriteNative` and `WriteSap`.
+	public byte[] GetOutput() => Output;
 
 	internal void WriteByte!(int value)
 		throws ASAPConversionException
 	{
-		if (OutputOffset >= OutputEnd)
+		if (OutputOffset >= Output.Length)
 			throw ASAPConversionException("Output full");
 		Output[OutputOffset++] = value;
 	}
@@ -280,7 +268,7 @@ public class ASAPWriter
 		throws ASAPConversionException
 	{
 		int length = endIndex - startIndex;
-		if (OutputOffset + length > OutputEnd)
+		if (OutputOffset + length > Output.Length)
 			throw ASAPConversionException("Output full");
 		array.CopyTo(startIndex, Output, OutputOffset, length);
 		OutputOffset += length;
@@ -450,6 +438,7 @@ public class ASAPWriter
 			if (music <= playerLastByte)
 				throw ASAPConversionException("Module address conflicts with the player routine");
 		}
+		OutputOffset = 0;
 		int startAddr;
 		switch (info.Type) {
 		case ASAPModuleType.SapB:
@@ -775,6 +764,7 @@ public class ASAPWriter
 		ASAPNativeModuleWriter() nativeWriter;
 		nativeWriter.Writer = this;
 		nativeWriter.SourceModule = module;
+		OutputOffset = 0;
 
 		switch (info.Type) {
 		case ASAPModuleType.SapB:

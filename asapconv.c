@@ -565,8 +565,6 @@ static void convert_to_module(const char *input_file, bool output_xex)
 			ASAPInfo_SetDefaultSong(info, current_song);
 		if (arg_duration >= 0)
 			ASAPInfo_SetDuration(info, current_song, arg_duration);
-		uint8_t output[ASAPInfo_MAX_MODULE_LENGTH];
-		ASAPWriter_SetOutput(writer, output, 0, sizeof(output));
 		if (!ASAPWriter_Write(writer, output_file, info, module, module_len, arg_tag))
 			fatal_error("%s: conversion error", input_file);
 	}

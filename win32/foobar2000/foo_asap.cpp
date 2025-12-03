@@ -296,16 +296,16 @@ public:
 		ASAPWriter *writer = ASAPWriter_New();
 		if (writer == nullptr)
 			throw exception_io_data();
-		BYTE output[ASAPInfo_MAX_MODULE_LENGTH];
-		ASAPWriter_SetOutput(writer, output, 0, sizeof(output));
 		int output_len = ASAPWriter_WriteSap(writer, ASAP_GetInfo(asap), module, module_len);
-		ASAPWriter_Delete(writer);
-		if (output_len < 0)
+		if (output_len < 0) {
+			ASAPWriter_Delete(writer);
 			throw exception_io_unsupported_format();
+		}
 
 		m_file.release();
 		filesystem::g_open(m_file, url, filesystem::open_mode_write_new, p_abort);
-		m_file->write(output, output_len, p_abort);
+		m_file->write(ASAPWriter_GetOutput(writer), output_len, p_abort);
+		ASAPWriter_Delete(writer);
 	}
 
 	void remove_tags(abort_callback &p_abort)

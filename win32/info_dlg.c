@@ -467,8 +467,6 @@ static bool doSaveFile(const char *filename, bool tag)
 		return false;
 	static const ASAPWriterVtbl writer_vtbl = { ASAPWriter_Save };
 	*(const ASAPWriterVtbl **) writer = &writer_vtbl;
-	uint8_t output[ASAPInfo_MAX_MODULE_LENGTH];
-	ASAPWriter_SetOutput(writer, output, 0, sizeof(output));
 	bool ok = ASAPWriter_Write(writer, filename, edited_info, saved_module, saved_module_len, tag);
 	ASAPWriter_Delete(writer);
 	return ok;

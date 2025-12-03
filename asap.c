@@ -494,9 +494,8 @@ typedef struct {
  */
 struct ASAPWriter {
 	const ASAPWriterVtbl *vtbl;
-	uint8_t *output;
 	int outputOffset;
-	int outputEnd;
+	uint8_t output[65000];
 };
 static void ASAPWriter_Construct(ASAPWriter *self);
 
@@ -4831,16 +4830,14 @@ int ASAPWriter_DurationToString(uint8_t *result, int value)
 	return 9;
 }
 
-void ASAPWriter_SetOutput(ASAPWriter *self, uint8_t *output, int startIndex, int endIndex)
+uint8_t const *ASAPWriter_GetOutput(const ASAPWriter *self)
 {
-	self->output = output;
-	self->outputOffset = startIndex;
-	self->outputEnd = endIndex;
+	return self->output;
 }
 
 static bool ASAPWriter_WriteByte(ASAPWriter *self, int value)
 {
-	if (self->outputOffset >= self->outputEnd)
+	if (self->outputOffset >= 65000)
 		return false;
 	self->output[self->outputOffset++] = (uint8_t) value;
 	return true;
@@ -4856,7 +4853,7 @@ static bool ASAPWriter_WriteWord(ASAPWriter *self, int value)
 static bool ASAPWriter_WriteBytes(ASAPWriter *self, uint8_t const *array, int startIndex, int endIndex)
 {
 	int length = endIndex - startIndex;
-	if (self->outputOffset + length > self->outputEnd)
+	if (self->outputOffset + length > 65000)
 		return false;
 	memcpy(self->output + self->outputOffset, array + startIndex, length);
 	self->outputOffset += length;
@@ -5083,6 +5080,7 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, con
 		if (music <= playerLastByte)
 			return false;
 	}
+	self->outputOffset = 0;
 	int startAddr;
 	switch (info->type) {
 	case ASAPModuleType_SAP_B:
@@ -5567,6 +5565,7 @@ int ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const
 	ASAPNativeModuleWriter nativeWriter;
 	nativeWriter.writer = self;
 	nativeWriter.sourceModule = module;
+	self->outputOffset = 0;
 	switch (info->type) {
 	case ASAPModuleType_SAP_B:
 	case ASAPModuleType_SAP_C:
@@ -6877,20 +6876,21 @@ static bool FlashPack_Compress(FlashPack *self, ASAPWriter *w)
 {
 	for (int i = 0; i < 65536; i++)
 		self->memory[i] = -1;
+	uint8_t const *input = ASAPWriter_GetOutput(w);
 	for (int i = 0; i + 5 <= w->outputOffset;) {
-		int startAddress = w->output[i] + (w->output[i + 1] << 8);
+		int startAddress = input[i] + (input[i + 1] << 8);
 		if (startAddress == 65535) {
 			i += 2;
-			startAddress = w->output[i] + (w->output[i + 1] << 8);
+			startAddress = input[i] + (input[i + 1] << 8);
 		}
-		int endAddress = w->output[i + 2] + (w->output[i + 3] << 8);
+		int endAddress = input[i + 2] + (input[i + 3] << 8);
 		if (startAddress > endAddress)
 			return false;
 		i += 4;
 		if (i + endAddress - startAddress >= w->outputOffset)
 			return false;
 		while (startAddress <= endAddress)
-			self->memory[startAddress++] = w->output[i++];
+			self->memory[startAddress++] = input[i++];
 	}
 	if (self->memory[736] < 0 || self->memory[737] < 0)
 		return false;
