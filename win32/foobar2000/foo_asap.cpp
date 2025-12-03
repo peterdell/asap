@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#define _WINSOCKAPI_ /* prevents compilation errors */
+#define _WINSOCKAPI_ // prevents compilation errors
 #include <windows.h>
 #include <string.h>
 
@@ -30,14 +30,14 @@
 #include "info_dlg.h"
 #include "settings_dlg.h"
 
-#define UNICODE /* NOT for info_dlg.h */
+#define UNICODE // NOT for info_dlg.h
 #include "foobar2000/SDK/foobar2000.h"
 #include "foobar2000/SDK/coreDarkMode.h"
 
 #define BITS_PER_SAMPLE    16
 #define BUFFERED_BLOCKS    1024
 
-/* Configuration --------------------------------------------------------- */
+// Configuration ---------------------------------------------------------
 
 static const GUID preferences_guid =
 	{ 0xf7c0a763, 0x7c20, 0x4b64, { 0x92, 0xbf, 0x11, 0xe5, 0x5d, 0x8, 0xe5, 0x53 } };
@@ -68,11 +68,11 @@ static cfg_bool playing_info_cfg(playing_info_guid, false);
 
 void onUpdatePlayingInfo()
 {
-	playing_info_cfg = playing_info != FALSE; /* avoid warning C4800 */
+	playing_info_cfg = playing_info;
 }
 
 
-/* Decoding -------------------------------------------------------------- */
+// Decoding --------------------------------------------------------------
 
 static bool has_ext(const char *path, const char *ext)
 {
@@ -195,7 +195,7 @@ public:
 		case input_open_info_write:
 			if (!has_ext(p_path, ".sap"))
 				throw exception_io_unsupported_format();
-			/* FALLTHROUGH */
+			[[fallthrough]];
 		case input_open_decode:
 			free(url);
 			url = strdup(p_path);
@@ -298,7 +298,7 @@ public:
 			throw exception_io_data();
 		BYTE output[ASAPInfo_MAX_MODULE_LENGTH];
 		ASAPWriter_SetOutput(writer, output, 0, sizeof(output));
-		int output_len = ASAPWriter_Write(writer, url, ASAP_GetInfo(asap), module, module_len, FALSE);
+		int output_len = ASAPWriter_Write(writer, url, ASAP_GetInfo(asap), module, module_len, false);
 		ASAPWriter_Delete(writer);
 		if (output_len < 0)
 			throw exception_io_unsupported_format();
@@ -318,7 +318,7 @@ public:
 static input_factory_t<input_asap> g_input_asap_factory;
 
 
-/* Configuration --------------------------------------------------------- */
+// Configuration ---------------------------------------------------------
 
 static preferences_page_callback::ptr g_callback;
 
@@ -331,11 +331,11 @@ static INT_PTR CALLBACK settings_dialog_proc(HWND hDlg, UINT uMsg, WPARAM wParam
 	case WM_COMMAND:
 		switch (wParam) {
 		case MAKEWPARAM(IDC_UNLIMITED, BN_CLICKED):
-			enableTimeInput(hDlg, FALSE);
+			enableTimeInput(hDlg, false);
 			g_callback->on_state_changed();
 			return TRUE;
 		case MAKEWPARAM(IDC_LIMITED, BN_CLICKED):
-			enableTimeInput(hDlg, TRUE);
+			enableTimeInput(hDlg, true);
 			setFocusAndSelect(hDlg, IDC_MINUTES);
 			g_callback->on_state_changed();
 			return TRUE;
@@ -490,7 +490,7 @@ public:
 static service_factory_single_t<preferences_page_asap> g_preferences_page_asap_factory;
 
 
-/* File types ------------------------------------------------------------ */
+// File types ------------------------------------------------------------
 
 class input_file_type_asap : public service_impl_single_t<input_file_type>
 {
@@ -539,7 +539,7 @@ public:
 static service_factory_single_t<input_file_type_asap> g_input_file_type_asap_factory;
 
 
-/* Info window ----------------------------------------------------------- */
+// Info window -----------------------------------------------------------
 
 static std::unique_ptr<fb2k::CCoreDarkModeHooks> g_darkInfoDialog;
 
@@ -612,7 +612,7 @@ class info_menu : public mainmenu_commands
 static mainmenu_commands_factory_t<info_menu> g_info_menu_factory;
 
 
-/* ATR filesystem -------------------------------------------------------- */
+// ATR filesystem --------------------------------------------------------
 
 class file_atr : public file_readonly
 {
