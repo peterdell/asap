@@ -557,6 +557,8 @@ static bool ASAPWriter_WriteXexInfo(ASAPWriter *self, const ASAPInfo *info);
  */
 static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, uint8_t const *buffer, int offset, int length);
 
+static bool ASAPWriter_WriteMptSamples(ASAPWriter *self, const char *moduleFilename, const ASAPInfo *info, uint8_t const *module, int moduleLen, int extNumber);
+
 struct FlashPackItem {
 	FlashPackItemType type;
 	int value;
@@ -5643,6 +5645,25 @@ static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, uint8_t cons
 	return true;
 }
 
+static bool ASAPWriter_WriteMptSamples(ASAPWriter *self, const char *moduleFilename, const ASAPInfo *info, uint8_t const *module, int moduleLen, int extNumber)
+{
+	int offset = info->headerLen + self->outputLen + 4;
+	if (offset + 256 >= moduleLen || module[offset - 4] != 224 || module[offset - 2] != 255)
+		return false;
+	int length = (module[offset - 1] - module[offset - 3]) << 8 | 32;
+	if (offset + length >= moduleLen)
+		return false;
+	ptrdiff_t moduleExt = (ptrdiff_t) strlen(moduleFilename) - 3;
+	const char *extInitial = moduleFilename[moduleExt] == 'M' ? "D" : "d";
+	char *filename = FuString_Format("%.*s%s%d", moduleExt, moduleFilename, extInitial, extNumber);
+	if (!self->vtbl->save(self, filename, module, offset, length)) {
+		free(filename);
+		return false;
+	}
+	free(filename);
+	return true;
+}
+
 bool ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPInfo *info, uint8_t const *module, int moduleLen, bool tag)
 {
 	int destExt = ASAPInfo_GetPackedExt(targetFilename);
@@ -5730,7 +5751,33 @@ bool ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPIn
 			if (destExt == packedPossibleExt || (destExt == 3698036 && packedPossibleExt == 6516084)) {
 				if (ASAPWriter_WriteNative(self, info, module, moduleLen) == NULL)
 					return false;
-				return self->vtbl->save(self, targetFilename, self->output, 0, self->outputLen);
+				if (!self->vtbl->save(self, targetFilename, self->output, 0, self->outputLen))
+					return false;
+				if (info->type == ASAPModuleType_SAP_D) {
+					switch (info->originalType) {
+					case ASAPModuleType_MD1:
+						switch (module[moduleLen - 2230]) {
+						case 0:
+							if (!ASAPWriter_WriteMptSamples(self, targetFilename, info, module, moduleLen, 8))
+								return false;
+							break;
+						case 1:
+							if (!ASAPWriter_WriteMptSamples(self, targetFilename, info, module, moduleLen, 15))
+								return false;
+							break;
+						default:
+							return false;
+						}
+						break;
+					case ASAPModuleType_MD2:
+						if (!ASAPWriter_WriteMptSamples(self, targetFilename, info, module, moduleLen, 8))
+							return false;
+						break;
+					default:
+						break;
+					}
+				}
+				return true;
 			}
 		}
 		return false;

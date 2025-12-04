@@ -835,6 +835,21 @@ public class ASAPWriter
 	{
 	}
 
+	void WriteMptSamples!(string moduleFilename, ASAPInfo info, byte[] module, int moduleLen, int extNumber)
+		throws ASAPConversionException, ASAPIOException
+	{
+		int offset = info.HeaderLen + OutputLen + 4;
+		if (offset + 0x100 >= moduleLen || module[offset - 4] != 0xe0 || module[offset - 2] != 0xff)
+			throw ASAPConversionException("Invalid samples block");
+		int length = (module[offset - 1] - module[offset - 3]) << 8 | 0x20;
+		if (offset + length >= moduleLen)
+			throw ASAPConversionException("Invalid samples block");
+		nint moduleExt = moduleFilename.Length - 3;
+		string extInitial = moduleFilename[moduleExt] == 'M' ? "D" : "d";
+		string() filename = $"{moduleFilename.Substring(0, moduleExt)}{extInitial}{extNumber}";
+		Save(filename, module, offset, length);
+	}
+
 	/// Writes the given module in a possibly different file format.
 	public void Write!(
 		/// Output filename, used to determine the format.
@@ -913,6 +928,27 @@ public class ASAPWriter
 					// * -> native
 					WriteNative(info, module, moduleLen);
 					Save(targetFilename, Output, 0, OutputLen);
+					if (info.Type == ASAPModuleType.SapD) {
+						switch (info.OriginalType) {
+						case ASAPModuleType.Md1:
+							switch (module[moduleLen - 2230]) {
+							case 0:
+								WriteMptSamples(targetFilename, info, module, moduleLen, 8);
+								break;
+							case 1:
+								WriteMptSamples(targetFilename, info, module, moduleLen, 15);
+								break;
+							default:
+								throw ASAPConversionException("Unknown MD1 samples");
+							}
+							break;
+						case ASAPModuleType.Md2:
+							WriteMptSamples(targetFilename, info, module, moduleLen, 8);
+							break;
+						default:
+							break;
+						}
+					}
 					return;
 				}
 			}
