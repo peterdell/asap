@@ -250,9 +250,6 @@ public class ASAPWriter
 		OutputLen = 0;
 	}
 
-	/// Returns the number of bytes writtern by `WriteNative` or `WriteSap`.
-	public int GetOutputLength() => OutputLen;
-
 	internal byte[] GetOutput() => Output;
 
 	internal void WriteByte!(int value)
@@ -759,7 +756,7 @@ public class ASAPWriter
 
 	/// Writes the a native module, possibly extracting it from a SAP file.
 	public byte[] WriteNative!(
-		/// File information got from the source file with possibly the address changed.
+		/// Source file information, optionally with the address changed.
 		ASAPInfo info,
 		/// Contents of the source file.
 		byte[] module,
@@ -808,7 +805,7 @@ public class ASAPWriter
 
 	/// Writes the given module in the SAP format.
 	public byte[] WriteSap!(
-		/// File information got from the source file with data updated for the output file.
+		/// Source file information, with metadata updated for the output.
 		ASAPInfo info,
 		/// Contents of the source file.
 		byte[] module,
@@ -820,7 +817,20 @@ public class ASAPWriter
 		return Output;
 	}
 
-	protected virtual void Save!(string filename, byte[] buffer, int offset, int length)
+	/// Returns the number of bytes written by `WriteNative` or `WriteSap`.
+	public int GetOutputLength() => OutputLen;
+
+	/// Writes a SAP/XEX/native module file.
+	/// If `Write` is used, `Save` needs to be overridden in a subclass of `ASAPWriter`.
+	protected virtual void Save!(
+		/// Output filename.
+		string filename,
+		/// Contents to write.
+		byte[] buffer,
+		/// Starting index in `buffer` to write into the file.
+		int offset,
+		/// Number of bytes to write.
+		int length)
 		throws ASAPIOException
 	{
 	}

@@ -545,6 +545,16 @@ static bool ASAPWriter_WriteXexInfoTextDl(ASAPWriter *self, int address, int len
 
 static bool ASAPWriter_WriteXexInfo(ASAPWriter *self, const ASAPInfo *info);
 
+/**
+ * Writes a SAP/XEX/native module file.
+ * If <code>Write</code> is used, <code>Save</code> needs to be overridden in a subclass of <code>ASAPWriter</code>.
+ * @param self This <code>ASAPWriter</code>.
+ * @param filename Output filename.
+ * @param buffer Contents to write.
+ * @param offset Starting index in <code>buffer</code> to write into the file.
+ * @param length Number of bytes to write.
+ * @return <code>false</code> on error.
+ */
 static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, uint8_t const *buffer, int offset, int length);
 
 struct FlashPackItem {
@@ -4844,11 +4854,6 @@ static void ASAPWriter_ClearOutput(ASAPWriter *self)
 	self->outputLen = 0;
 }
 
-int ASAPWriter_GetOutputLength(const ASAPWriter *self)
-{
-	return self->outputLen;
-}
-
 static uint8_t const *ASAPWriter_GetOutput(const ASAPWriter *self)
 {
 	return self->output;
@@ -5626,6 +5631,11 @@ uint8_t const *ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, ui
 uint8_t const *ASAPWriter_WriteSap(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen)
 {
 	return ASAPWriter_WriteExecutable(self, NULL, info, module, moduleLen) ? self->output : NULL;
+}
+
+int ASAPWriter_GetOutputLength(const ASAPWriter *self)
+{
+	return self->outputLen;
 }
 
 static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, uint8_t const *buffer, int offset, int length)
