@@ -494,7 +494,7 @@ typedef struct {
  */
 struct ASAPWriter {
 	const ASAPWriterVtbl *vtbl;
-	int outputOffset;
+	int outputLen;
 	uint8_t output[65000];
 };
 static void ASAPWriter_Construct(ASAPWriter *self);
@@ -502,6 +502,10 @@ static void ASAPWriter_Construct(ASAPWriter *self);
 static void ASAPWriter_TwoDigitsToString(uint8_t *result, int offset, int value);
 
 static bool ASAPWriter_SecondsToString(uint8_t *result, int offset, int value);
+
+static void ASAPWriter_ClearOutput(ASAPWriter *self);
+
+static int ASAPWriter_GetOutputLength(const ASAPWriter *self);
 
 static bool ASAPWriter_WriteByte(ASAPWriter *self, int value);
 
@@ -4617,7 +4621,7 @@ static int ASAPNativeModuleWriter_GetWord(const ASAPNativeModuleWriter *self, in
 
 static bool ASAPNativeModuleWriter_Copy(const ASAPNativeModuleWriter *self, int endOffset)
 {
-	return ASAPWriter_WriteBytes(self->writer, self->sourceModule, self->sourceOffset + self->writer->outputOffset, self->sourceOffset + endOffset);
+	return ASAPWriter_WriteBytes(self->writer, self->sourceModule, self->sourceOffset + ASAPWriter_GetOutputLength(self->writer), self->sourceOffset + endOffset);
 }
 
 static bool ASAPNativeModuleWriter_RelocateBytes(const ASAPNativeModuleWriter *self, int lowOffset, int highOffset, int count, int shift)
@@ -4636,7 +4640,7 @@ static bool ASAPNativeModuleWriter_RelocateBytes(const ASAPNativeModuleWriter *s
 
 static bool ASAPNativeModuleWriter_RelocateLowHigh(const ASAPNativeModuleWriter *self, int count)
 {
-	int lowOffset = self->writer->outputOffset;
+	int lowOffset = ASAPWriter_GetOutputLength(self->writer);
 	if (!ASAPNativeModuleWriter_RelocateBytes(self, lowOffset, lowOffset + count, count, 0))
 		return false;
 	return ASAPNativeModuleWriter_RelocateBytes(self, lowOffset, lowOffset + count, count, 8);
@@ -4645,7 +4649,7 @@ static bool ASAPNativeModuleWriter_RelocateLowHigh(const ASAPNativeModuleWriter 
 static bool ASAPNativeModuleWriter_RelocateWords(const ASAPNativeModuleWriter *self, int count)
 {
 	while (--count >= 0) {
-		int address = ASAPNativeModuleWriter_GetWord(self, self->writer->outputOffset);
+		int address = ASAPNativeModuleWriter_GetWord(self, ASAPWriter_GetOutputLength(self->writer));
 		if (address != 0 && address != 65535)
 			address += self->addressDiff;
 		if (!ASAPWriter_WriteWord(self->writer, address))
@@ -4830,6 +4834,16 @@ int ASAPWriter_DurationToString(uint8_t *result, int value)
 	return 9;
 }
 
+static void ASAPWriter_ClearOutput(ASAPWriter *self)
+{
+	self->outputLen = 0;
+}
+
+static int ASAPWriter_GetOutputLength(const ASAPWriter *self)
+{
+	return self->outputLen;
+}
+
 uint8_t const *ASAPWriter_GetOutput(const ASAPWriter *self)
 {
 	return self->output;
@@ -4837,9 +4851,9 @@ uint8_t const *ASAPWriter_GetOutput(const ASAPWriter *self)
 
 static bool ASAPWriter_WriteByte(ASAPWriter *self, int value)
 {
-	if (self->outputOffset >= 65000)
+	if (self->outputLen >= 65000)
 		return false;
-	self->output[self->outputOffset++] = (uint8_t) value;
+	self->output[self->outputLen++] = (uint8_t) value;
 	return true;
 }
 
@@ -4853,10 +4867,10 @@ static bool ASAPWriter_WriteWord(ASAPWriter *self, int value)
 static bool ASAPWriter_WriteBytes(ASAPWriter *self, uint8_t const *array, int startIndex, int endIndex)
 {
 	int length = endIndex - startIndex;
-	if (self->outputOffset + length > 65000)
+	if (self->outputLen + length > 65000)
 		return false;
-	memcpy(self->output + self->outputOffset, array + startIndex, length);
-	self->outputOffset += length;
+	memcpy(self->output + self->outputLen, array + startIndex, length);
+	self->outputLen += length;
 	return true;
 }
 
@@ -5080,7 +5094,7 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, con
 		if (music <= playerLastByte)
 			return false;
 	}
-	self->outputOffset = 0;
+	self->outputLen = 0;
 	int startAddr;
 	switch (info->type) {
 	case ASAPModuleType_SAP_B:
@@ -5565,7 +5579,7 @@ int ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const
 	ASAPNativeModuleWriter nativeWriter;
 	nativeWriter.writer = self;
 	nativeWriter.sourceModule = module;
-	self->outputOffset = 0;
+	self->outputLen = 0;
 	switch (info->type) {
 	case ASAPModuleType_SAP_B:
 	case ASAPModuleType_SAP_C:
@@ -5600,12 +5614,12 @@ int ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const
 			return -1;
 		break;
 	}
-	return self->outputOffset;
+	return self->outputLen;
 }
 
 int ASAPWriter_WriteSap(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen)
 {
-	return ASAPWriter_WriteExecutable(self, NULL, info, module, moduleLen) ? self->outputOffset : -1;
+	return ASAPWriter_WriteExecutable(self, NULL, info, module, moduleLen) ? self->outputLen : -1;
 }
 
 static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, uint8_t const *buffer, int offset, int length)
@@ -5620,7 +5634,7 @@ bool ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPIn
 	case 7364979:
 		if (!ASAPWriter_WriteExecutable(self, NULL, info, module, moduleLen))
 			return false;
-		return self->vtbl->save(self, targetFilename, self->output, 0, self->outputOffset);
+		return self->vtbl->save(self, targetFilename, self->output, 0, self->outputLen);
 	case 7890296:
 		{
 			int initAndPlayer[2];
@@ -5690,7 +5704,7 @@ bool ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPIn
 			FlashPack flashPack;
 			if (!FlashPack_Compress(&flashPack, self))
 				return false;
-			return self->vtbl->save(self, targetFilename, self->output, 0, self->outputOffset);
+			return self->vtbl->save(self, targetFilename, self->output, 0, self->outputLen);
 		}
 	default:
 		;
@@ -5700,7 +5714,7 @@ bool ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPIn
 			if (destExt == packedPossibleExt || (destExt == 3698036 && packedPossibleExt == 6516084)) {
 				if (ASAPWriter_WriteNative(self, info, module, moduleLen) == -1)
 					return false;
-				return self->vtbl->save(self, targetFilename, self->output, 0, self->outputOffset);
+				return self->vtbl->save(self, targetFilename, self->output, 0, self->outputLen);
 			}
 		}
 		return false;
@@ -6877,7 +6891,8 @@ static bool FlashPack_Compress(FlashPack *self, ASAPWriter *w)
 	for (int i = 0; i < 65536; i++)
 		self->memory[i] = -1;
 	uint8_t const *input = ASAPWriter_GetOutput(w);
-	for (int i = 0; i + 5 <= w->outputOffset;) {
+	int inputLen = ASAPWriter_GetOutputLength(w);
+	for (int i = 0; i + 5 <= inputLen;) {
 		int startAddress = input[i] + (input[i + 1] << 8);
 		if (startAddress == 65535) {
 			i += 2;
@@ -6887,7 +6902,7 @@ static bool FlashPack_Compress(FlashPack *self, ASAPWriter *w)
 		if (startAddress > endAddress)
 			return false;
 		i += 4;
-		if (i + endAddress - startAddress >= w->outputOffset)
+		if (i + endAddress - startAddress >= inputLen)
 			return false;
 		while (startAddress <= endAddress)
 			self->memory[startAddress++] = input[i++];
@@ -6916,7 +6931,7 @@ static bool FlashPack_Compress(FlashPack *self, ASAPWriter *w)
 	int compressedStartAddress = depackerStartAddress - self->compressedLength;
 	if (compressedStartAddress < 8192)
 		return false;
-	w->outputOffset = 0;
+	ASAPWriter_ClearOutput(w);
 	if (!ASAPWriter_WriteWord(w, 65535))
 		return false;
 	if (!ASAPWriter_WriteWord(w, 54017))

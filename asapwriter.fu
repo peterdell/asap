@@ -44,7 +44,7 @@ class ASAPNativeModuleWriter
 	void Copy(int endOffset)
 		throws ASAPConversionException
 	{
-		Writer.WriteBytes(SourceModule, SourceOffset + Writer.OutputOffset, SourceOffset + endOffset);
+		Writer.WriteBytes(SourceModule, SourceOffset + Writer.GetOutputLength(), SourceOffset + endOffset);
 	}
 
 	void RelocateBytes(int lowOffset, int highOffset, int count, int shift)
@@ -63,7 +63,7 @@ class ASAPNativeModuleWriter
 	void RelocateLowHigh(int count)
 		throws ASAPConversionException
 	{
-		int lowOffset = Writer.OutputOffset;
+		int lowOffset = Writer.GetOutputLength();
 		RelocateBytes(lowOffset, lowOffset + count, count, 0);
 		RelocateBytes(lowOffset, lowOffset + count, count, 8);
 	}
@@ -72,7 +72,7 @@ class ASAPNativeModuleWriter
 		throws ASAPConversionException
 	{
 		while (--count >= 0) {
-			int address = GetWord(Writer.OutputOffset);
+			int address = GetWord(Writer.GetOutputLength());
 			if (address != 0 && address != 0xffff)
 				address += AddressDiff;
 			Writer.WriteWord(address);
@@ -243,8 +243,15 @@ public class ASAPWriter
 		return 9;
 	}
 
-	internal int OutputOffset;
+	int OutputLen;
 	byte[ASAPInfo.MaxModuleLength] Output;
+
+	internal void ClearOutput!()
+	{
+		OutputLen = 0;
+	}
+
+	internal int GetOutputLength() => OutputLen;
 
 	/// Returns the internal buffer for the result of `WriteNative` and `WriteSap`.
 	public byte[] GetOutput() => Output;
@@ -252,9 +259,9 @@ public class ASAPWriter
 	internal void WriteByte!(int value)
 		throws ASAPConversionException
 	{
-		if (OutputOffset >= Output.Length)
+		if (OutputLen >= Output.Length)
 			throw ASAPConversionException("Output full");
-		Output[OutputOffset++] = value;
+		Output[OutputLen++] = value;
 	}
 
 	internal void WriteWord!(int value)
@@ -268,10 +275,10 @@ public class ASAPWriter
 		throws ASAPConversionException
 	{
 		int length = endIndex - startIndex;
-		if (OutputOffset + length > Output.Length)
+		if (OutputLen + length > Output.Length)
 			throw ASAPConversionException("Output full");
-		array.CopyTo(startIndex, Output, OutputOffset, length);
-		OutputOffset += length;
+		array.CopyTo(startIndex, Output, OutputLen, length);
+		OutputLen += length;
 	}
 
 	void WriteString!(string s)
@@ -438,7 +445,7 @@ public class ASAPWriter
 			if (music <= playerLastByte)
 				throw ASAPConversionException("Module address conflicts with the player routine");
 		}
-		OutputOffset = 0;
+		OutputLen = 0;
 		int startAddr;
 		switch (info.Type) {
 		case ASAPModuleType.SapB:
@@ -764,7 +771,7 @@ public class ASAPWriter
 		ASAPNativeModuleWriter() nativeWriter;
 		nativeWriter.Writer = this;
 		nativeWriter.SourceModule = module;
-		OutputOffset = 0;
+		OutputLen = 0;
 
 		switch (info.Type) {
 		case ASAPModuleType.SapB:
@@ -796,7 +803,7 @@ public class ASAPWriter
 			nativeWriter.Write(info, info.Type, moduleLen);
 			break;
 		}
-		return OutputOffset;
+		return OutputLen;
 	}
 
 	/// Writes the given module in the SAP format.
@@ -810,7 +817,7 @@ public class ASAPWriter
 		throws ASAPConversionException
 	{
 		WriteExecutable(null, info, module, moduleLen);
-		return OutputOffset;
+		return OutputLen;
 	}
 
 	protected virtual void Save!(string filename, byte[] buffer, int offset, int length)
@@ -837,7 +844,7 @@ public class ASAPWriter
 		case ASAPInfo.PackExt("SAP"):
 			// * -> SAP
 			WriteExecutable(null, info, module, moduleLen);
-			Save(targetFilename, Output, 0, OutputOffset);
+			Save(targetFilename, Output, 0, OutputLen);
 			return;
 		case ASAPInfo.PackExt("XEX"):
 			// * -> XEX
@@ -884,7 +891,7 @@ public class ASAPWriter
 				WriteWord(tag ? 0x100 : 0x124); // must match xexinfo.asx, xexb.asx, xexd.asx
 				FlashPack() flashPack;
 				flashPack.Compress(this);
-				Save(targetFilename, Output, 0, OutputOffset);
+				Save(targetFilename, Output, 0, OutputLen);
 				return;
 			}
 		default:
@@ -895,7 +902,7 @@ public class ASAPWriter
 				 || (destExt == ASAPInfo.PackExt("TM8") && packedPossibleExt == ASAPInfo.PackExt("TMC"))) {
 					// * -> native
 					WriteNative(info, module, moduleLen);
-					Save(targetFilename, Output, 0, OutputOffset);
+					Save(targetFilename, Output, 0, OutputLen);
 					return;
 				}
 			}

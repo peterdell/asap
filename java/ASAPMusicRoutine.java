@@ -76,7 +76,7 @@ public class ASAPMusicRoutine
 	 * Returns length of music data.
 	 * @see #getBinaryContent()
 	 */
-	public int getBinaryLength() { return writer.outputOffset; }
+	public int getBinaryLength() { return writer.getOutputLength(); }
 
 	/**
 	 * Returns address of the initialization routine.
