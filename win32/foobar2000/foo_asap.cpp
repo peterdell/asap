@@ -296,15 +296,15 @@ public:
 		ASAPWriter *writer = ASAPWriter_New();
 		if (writer == nullptr)
 			throw exception_io_data();
-		int output_len = ASAPWriter_WriteSap(writer, ASAP_GetInfo(asap), module, module_len);
-		if (output_len < 0) {
+		const uint8_t *output = ASAPWriter_WriteSap(writer, ASAP_GetInfo(asap), module, module_len);
+		if (output == nullptr) {
 			ASAPWriter_Delete(writer);
 			throw exception_io_unsupported_format();
 		}
 
 		m_file.release();
 		filesystem::g_open(m_file, url, filesystem::open_mode_write_new, p_abort);
-		m_file->write(ASAPWriter_GetOutput(writer), output_len, p_abort);
+		m_file->write(output, ASAPWriter_GetOutputLength(writer), p_abort);
 		ASAPWriter_Delete(writer);
 	}
 

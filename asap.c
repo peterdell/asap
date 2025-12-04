@@ -505,7 +505,7 @@ static bool ASAPWriter_SecondsToString(uint8_t *result, int offset, int value);
 
 static void ASAPWriter_ClearOutput(ASAPWriter *self);
 
-static int ASAPWriter_GetOutputLength(const ASAPWriter *self);
+static uint8_t const *ASAPWriter_GetOutput(const ASAPWriter *self);
 
 static bool ASAPWriter_WriteByte(ASAPWriter *self, int value);
 
@@ -4839,12 +4839,12 @@ static void ASAPWriter_ClearOutput(ASAPWriter *self)
 	self->outputLen = 0;
 }
 
-static int ASAPWriter_GetOutputLength(const ASAPWriter *self)
+int ASAPWriter_GetOutputLength(const ASAPWriter *self)
 {
 	return self->outputLen;
 }
 
-uint8_t const *ASAPWriter_GetOutput(const ASAPWriter *self)
+static uint8_t const *ASAPWriter_GetOutput(const ASAPWriter *self)
 {
 	return self->output;
 }
@@ -5574,7 +5574,7 @@ static bool ASAPWriter_WriteXexInfo(ASAPWriter *self, const ASAPInfo *info)
 	return ASAPWriter_WriteBytes(self, FuResource_xexinfo_obx, 6, 178);
 }
 
-int ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen)
+uint8_t const *ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen)
 {
 	ASAPNativeModuleWriter nativeWriter;
 	nativeWriter.writer = self;
@@ -5588,38 +5588,38 @@ int ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const
 		if (offset > 0) {
 			nativeWriter.sourceOffset = offset - 2;
 			if (!ASAPNativeModuleWriter_Write(&nativeWriter, info, ASAPModuleType_RMT, moduleLen - offset + 2))
-				return -1;
+				return NULL;
 			break;
 		}
 		nativeWriter.sourceOffset = info->headerLen;
 		int blockLen = ASAPNativeModuleWriter_GetWord(&nativeWriter, 4) - ASAPNativeModuleWriter_GetWord(&nativeWriter, 2) + 7;
 		if (blockLen < 7 || info->headerLen + blockLen >= moduleLen)
-			return -1;
+			return NULL;
 		if (info->originalType == ASAPModuleType_FC) {
 			if (!ASAPWriter_WriteBytes(self, module, info->headerLen + 6, info->headerLen + blockLen))
-				return -1;
+				return NULL;
 		}
 		else {
 			if (!ASAPNativeModuleWriter_Write(&nativeWriter, info, info->originalType, blockLen))
-				return -1;
+				return NULL;
 		}
 		break;
 	case ASAPModuleType_FC:
 		if (!ASAPWriter_WriteBytes(self, module, 0, moduleLen))
-			return -1;
+			return NULL;
 		break;
 	default:
 		nativeWriter.sourceOffset = 0;
 		if (!ASAPNativeModuleWriter_Write(&nativeWriter, info, info->type, moduleLen))
-			return -1;
+			return NULL;
 		break;
 	}
-	return self->outputLen;
+	return self->output;
 }
 
-int ASAPWriter_WriteSap(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen)
+uint8_t const *ASAPWriter_WriteSap(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen)
 {
-	return ASAPWriter_WriteExecutable(self, NULL, info, module, moduleLen) ? self->outputLen : -1;
+	return ASAPWriter_WriteExecutable(self, NULL, info, module, moduleLen) ? self->output : NULL;
 }
 
 static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, uint8_t const *buffer, int offset, int length)
@@ -5712,7 +5712,7 @@ bool ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPIn
 		if (possibleExt != NULL) {
 			int packedPossibleExt = ASAPInfo_PackExt(possibleExt);
 			if (destExt == packedPossibleExt || (destExt == 3698036 && packedPossibleExt == 6516084)) {
-				if (ASAPWriter_WriteNative(self, info, module, moduleLen) == -1)
+				if (ASAPWriter_WriteNative(self, info, module, moduleLen) == NULL)
 					return false;
 				return self->vtbl->save(self, targetFilename, self->output, 0, self->outputLen);
 			}

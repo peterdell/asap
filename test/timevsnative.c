@@ -56,9 +56,9 @@ int main(int argc, char *argv[])
 		printf("\t%s", native_ext);
 		char native_filename[FILENAME_MAX];
 		sprintf(native_filename, "%.*s.%s", (int) (strrchr(sap_filename, '.') - sap_filename), sap_filename, native_ext);
-		int native_len = ASAPWriter_WriteNative(writer, sap_info, sap, sap_len);
-		if (native_len >= 0) {
-			int native_sum = print_times(native_info, native_filename, ASAPWriter_GetOutput(writer), native_len);
+		const uint8_t * native = ASAPWriter_WriteNative(writer, sap_info, sap, sap_len);
+		if (native != NULL) {
+			int native_sum = print_times(native_info, native_filename, native, ASAPWriter_GetOutputLength(writer));
 			printf("\t%d", abs(native_sum - sap_sum) / 1000);
 		}
 		ASAPWriter_Delete(writer);

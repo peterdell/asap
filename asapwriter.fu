@@ -251,10 +251,10 @@ public class ASAPWriter
 		OutputLen = 0;
 	}
 
-	internal int GetOutputLength() => OutputLen;
+	/// Returns the number of bytes writtern by `WriteNative` or `WriteSap`.
+	public int GetOutputLength() => OutputLen;
 
-	/// Returns the internal buffer for the result of `WriteNative` and `WriteSap`.
-	public byte[] GetOutput() => Output;
+	internal byte[] GetOutput() => Output;
 
 	internal void WriteByte!(int value)
 		throws ASAPConversionException
@@ -759,7 +759,7 @@ public class ASAPWriter
 	}
 
 	/// Writes the a native module, possibly extracting it from a SAP file.
-	public uint WriteNative!(
+	public byte[] WriteNative!(
 		/// File information got from the source file with possibly the address changed.
 		ASAPInfo info,
 		/// Contents of the source file.
@@ -803,11 +803,11 @@ public class ASAPWriter
 			nativeWriter.Write(info, info.Type, moduleLen);
 			break;
 		}
-		return OutputLen;
+		return Output;
 	}
 
 	/// Writes the given module in the SAP format.
-	public uint WriteSap!(
+	public byte[] WriteSap!(
 		/// File information got from the source file with data updated for the output file.
 		ASAPInfo info,
 		/// Contents of the source file.
@@ -817,7 +817,7 @@ public class ASAPWriter
 		throws ASAPConversionException
 	{
 		WriteExecutable(null, info, module, moduleLen);
-		return OutputLen;
+		return Output;
 	}
 
 	protected virtual void Save!(string filename, byte[] buffer, int offset, int length)

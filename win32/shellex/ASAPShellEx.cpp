@@ -429,18 +429,19 @@ public:
 			hr = m_pstream->Read(module, ASAPInfo::maxModuleLength, reinterpret_cast<ULONG *>(&module_len));
 			if (SUCCEEDED(hr)) {
 				ASAPWriter writer;
-				module_len = writer.writeSap(&m_info, module, module_len);
-				if (module_len < 0)
+				const uint8_t *output = writer.writeSap(&m_info, module, module_len);
+				if (output == nullptr)
 					hr = E_FAIL;
 				else {
 					hr = m_pstream->Seek(liZero, STREAM_SEEK_SET, nullptr);
 					if (SUCCEEDED(hr)) {
+						int output_len = writer.getOutputLength();
 						ULARGE_INTEGER liSize;
-						liSize.LowPart = module_len;
+						liSize.LowPart = output_len;
 						liSize.HighPart = 0;
 						hr = m_pstream->SetSize(liSize);
 						if (SUCCEEDED(hr)) {
-							hr = m_pstream->Write(writer.getOutput(), module_len, nullptr);
+							hr = m_pstream->Write(output, output_len, nullptr);
 							if (SUCCEEDED(hr))
 								hr = m_pstream->Commit(STGC_DEFAULT);
 						}

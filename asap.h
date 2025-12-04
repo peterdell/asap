@@ -553,10 +553,10 @@ int ASAPWriter_GetSaveExts(const char **exts, const ASAPInfo *info);
 int ASAPWriter_DurationToString(uint8_t *result, int value);
 
 /**
- * Returns the internal buffer for the result of <code>WriteNative</code> and <code>WriteSap</code>.
+ * Returns the number of bytes writtern by <code>WriteNative</code> or <code>WriteSap</code>.
  * @param self This <code>ASAPWriter</code>.
  */
-uint8_t const *ASAPWriter_GetOutput(const ASAPWriter *self);
+int ASAPWriter_GetOutputLength(const ASAPWriter *self);
 
 /**
  * Writes the a native module, possibly extracting it from a SAP file.
@@ -564,9 +564,9 @@ uint8_t const *ASAPWriter_GetOutput(const ASAPWriter *self);
  * @param info File information got from the source file with possibly the address changed.
  * @param module Contents of the source file.
  * @param moduleLen Length of the source file.
- * @return <code>-1</code> on error.
+ * @return <code>NULL</code> on error.
  */
-int ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen);
+uint8_t const *ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen);
 
 /**
  * Writes the given module in the SAP format.
@@ -574,9 +574,9 @@ int ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const
  * @param info File information got from the source file with data updated for the output file.
  * @param module Contents of the source file.
  * @param moduleLen Length of the source file.
- * @return <code>-1</code> on error.
+ * @return <code>NULL</code> on error.
  */
-int ASAPWriter_WriteSap(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen);
+uint8_t const *ASAPWriter_WriteSap(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen);
 
 /**
  * Writes the given module in a possibly different file format.
