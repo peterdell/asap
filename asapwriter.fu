@@ -101,6 +101,8 @@ class ASAPNativeModuleWriter
 			RelocateWords(3); // DOS header
 			break;
 		case ASAPModuleType.Mpt:
+		case ASAPModuleType.Md1:
+		case ASAPModuleType.Md2:
 			// * -> MPT
 			RelocateWords(3 + 32 + 64); // DOS header, instruments, patterns
 			Copy(6 + 64 + 128 + 256); // note lookup tables
@@ -177,15 +179,12 @@ public class ASAPWriter
 		switch (info.Type) {
 		case ASAPModuleType.SapB:
 		case ASAPModuleType.SapC:
+		case ASAPModuleType.SapD:
 			exts[i++] = "sap";
 			string? ext = info.GetOriginalModuleExt();
 			if (ext != null)
 				exts[i++] = ext;
-			exts[i++] = "xex";
-			break;
-		case ASAPModuleType.SapD:
-			exts[i++] = "sap";
-			if (info.GetPlayerRateScanlines() == 312)
+			if (info.Type != ASAPModuleType.SapD || info.GetPlayerRateScanlines() == 312)
 				exts[i++] = "xex";
 			break;
 		case ASAPModuleType.SapS:
@@ -776,6 +775,7 @@ public class ASAPWriter
 		switch (info.Type) {
 		case ASAPModuleType.SapB:
 		case ASAPModuleType.SapC:
+		case ASAPModuleType.SapD:
 			// SAP -> native
 			int offset = info.GetRmtSapOffset(module, moduleLen);
 			if (offset > 0) {

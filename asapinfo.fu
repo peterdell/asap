@@ -1372,6 +1372,12 @@ public class ASAPInfo
 			if (Init < 0)
 				throw ASAPFormatException("Missing INIT tag");
 			OriginalType = Type = ASAPModuleType.SapD;
+			if (Player == 0x503 || Player == 0xf503) {
+				if (Init == Player - (0x503 - 0x4e3) && moduleLen > 2231 && module[moduleLen - 2231] == 0xa2)
+					OriginalType = ASAPModuleType.Md1;
+				else if (Init == Player - (0x503 - 0x4e5))
+					OriginalType = ASAPModuleType.Md2;
+			}
 			break;
 		case 'S':
 			if (Init < 0)

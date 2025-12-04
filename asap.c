@@ -4121,6 +4121,12 @@ static bool ASAPInfo_ParseSap(ASAPInfo *self, uint8_t const *module, int moduleL
 		if (self->init < 0)
 			return false;
 		self->originalType = self->type = ASAPModuleType_SAP_D;
+		if (self->player == 1283 || self->player == 62723) {
+			if (self->init == self->player - 32 && moduleLen > 2231 && module[moduleLen - 2231] == 162)
+				self->originalType = ASAPModuleType_MD1;
+			else if (self->init == self->player - 30)
+				self->originalType = ASAPModuleType_MD2;
+		}
 		break;
 	case 'S':
 		if (self->init < 0)
@@ -4681,6 +4687,8 @@ static bool ASAPNativeModuleWriter_Write(ASAPNativeModuleWriter *self, const ASA
 			return false;
 		break;
 	case ASAPModuleType_MPT:
+	case ASAPModuleType_MD1:
+	case ASAPModuleType_MD2:
 		if (!ASAPNativeModuleWriter_RelocateWords(self, 99))
 			return false;
 		if (!ASAPNativeModuleWriter_Copy(self, 454))
@@ -4778,15 +4786,12 @@ int ASAPWriter_GetSaveExts(const char **exts, const ASAPInfo *info)
 	switch (info->type) {
 	case ASAPModuleType_SAP_B:
 	case ASAPModuleType_SAP_C:
+	case ASAPModuleType_SAP_D:
 		exts[i++] = "sap";
 		const char *ext = ASAPInfo_GetOriginalModuleExt(info);
 		if (ext != NULL)
 			exts[i++] = ext;
-		exts[i++] = "xex";
-		break;
-	case ASAPModuleType_SAP_D:
-		exts[i++] = "sap";
-		if (ASAPInfo_GetPlayerRateScanlines(info) == 312)
+		if (info->type != ASAPModuleType_SAP_D || ASAPInfo_GetPlayerRateScanlines(info) == 312)
 			exts[i++] = "xex";
 		break;
 	case ASAPModuleType_SAP_S:
@@ -5583,6 +5588,7 @@ uint8_t const *ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, ui
 	switch (info->type) {
 	case ASAPModuleType_SAP_B:
 	case ASAPModuleType_SAP_C:
+	case ASAPModuleType_SAP_D:
 		;
 		int offset = ASAPInfo_GetRmtSapOffset(info, module, moduleLen);
 		if (offset > 0) {
