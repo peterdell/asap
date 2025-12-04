@@ -80,6 +80,10 @@ win32/asap.obj: $(call src,asap.[ch])
 	$(WIN32_CL)
 CLEAN += win32/asap.obj
 
+win32/x64/asap.o: $(call src,asap.[ch])
+	$(WIN64_CC) -c
+CLEAN += win32/x64/asap.o
+
 # SDL
 
 win32/asap-sdl.exe: $(call src,asap-sdl.c asap.[ch])
@@ -247,7 +251,7 @@ CLEAN += win32/rmt/apokeysnd-res.o
 
 # ASAPShellEx
 
-win32/ASAPShellEx.dll: $(srcdir)win32/shellex/ASAPShellEx.cpp win32/shellex/asap-infowriter.cpp win32/shellex/asap-infowriter.hpp win32/shellex/ASAPShellEx-res.o
+win32/ASAPShellEx.dll: $(call src,win32/shellex/ASAPShellEx.cpp asap.h) win32/asap.o win32/shellex/ASAPShellEx-res.o
 	$(WIN32_CXX) -Wl,--kill-at -lole32 -loleaut32 -lshlwapi -luuid
 CLEAN += win32/ASAPShellEx.dll
 
@@ -255,19 +259,13 @@ win32/shellex/ASAPShellEx-res.o: $(call src,win32/gui.rc asap.h)
 	$(WIN32_WINDRES) -DSHELLEX
 CLEAN += win32/shellex/ASAPShellEx-res.o
 
-win32/x64/ASAPShellEx.dll: $(srcdir)win32/shellex/ASAPShellEx.cpp win32/shellex/asap-infowriter.cpp win32/shellex/asap-infowriter.hpp win32/x64/ASAPShellEx-res.o
+win32/x64/ASAPShellEx.dll: $(call src,win32/shellex/ASAPShellEx.cpp asap.h) win32/x64/asap.o win32/x64/ASAPShellEx-res.o
 	$(WIN64_CXX) -Wl,--kill-at -lole32 -loleaut32 -lshlwapi -luuid
 CLEAN += win32/x64/ASAPShellEx.dll
 
 win32/x64/ASAPShellEx-res.o: $(call src,win32/gui.rc asap.h)
 	$(WIN64_WINDRES) -DSHELLEX
 CLEAN += win32/x64/ASAPShellEx-res.o
-
-win32/shellex/asap-infowriter.hpp: $(call src,asapinfo.fu asap6502.fu asapwriter.fu flashpack.fu) $(ASM6502_OBX) | win32/shellex/asap-infowriter.cpp
-
-win32/shellex/asap-infowriter.cpp: $(call src,asapinfo.fu asap6502.fu asapwriter.fu flashpack.fu) $(ASM6502_OBX)
-	$(FUT)
-CLEAN += win32/shellex/asap-infowriter.cpp win32/shellex/asap-infowriter.hpp
 
 # setups
 
