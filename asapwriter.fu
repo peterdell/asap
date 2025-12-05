@@ -426,14 +426,14 @@ public class ASAPWriter
 		initAndPlayer[1] += 6;
 	}
 
-	void WriteExecutableFromSap!(int[]! initAndPlayer, ASAPInfo info, int type, byte[] module, int moduleLen)
+	void WriteExecutableFromSap!(int[]!? initAndPlayer, ASAPInfo info, int type, byte[] module, int moduleLen)
 		throws ASAPConversionException
 	{
 		WriteExecutableHeader(initAndPlayer, info, type, info.GetInitAddress(), info.Player);
 		WriteBytes(module, info.HeaderLen, moduleLen);
 	}
 
-	ushort WriteExecutableHeaderForSongPos!(int[]! initAndPlayer, ASAPInfo info, int player, int codeForOneSong, int codeForManySongs, int playerOffset)
+	ushort WriteExecutableHeaderForSongPos!(int[]!? initAndPlayer, ASAPInfo info, int player, int codeForOneSong, int codeForManySongs, int playerOffset)
 		throws ASAPConversionException
 	{
 		if (info.GetSongs() != 1) {
