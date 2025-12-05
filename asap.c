@@ -537,6 +537,10 @@ static bool ASAPWriter_WriteExecutableFromSap(ASAPWriter *self, int *initAndPlay
 
 static int ASAPWriter_WriteExecutableHeaderForSongPos(ASAPWriter *self, int *initAndPlayer, const ASAPInfo *info, int player, int codeForOneSong, int codeForManySongs, int playerOffset);
 
+static bool ASAPWriter_WriteMptInit(ASAPWriter *self, const ASAPInfo *info, int player);
+
+static bool ASAPWriter_WriteMptPlaySong(ASAPWriter *self, const ASAPInfo *info, int startAddr);
+
 static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, const ASAPInfo *info, uint8_t const *module, int moduleLen);
 
 static int ASAPWriter_PadXexInfo(uint8_t *dest, int offset, int endColumn);
@@ -5105,6 +5109,55 @@ static int ASAPWriter_WriteExecutableHeaderForSongPos(ASAPWriter *self, int *ini
 	return ASAPWriter_WriteExecutableHeader(self, initAndPlayer, info, 'B', player - codeForOneSong, player + playerOffset) ? player - codeForOneSong : -1;
 }
 
+static bool ASAPWriter_WriteMptInit(ASAPWriter *self, const ASAPInfo *info, int player)
+{
+	if (ASAPInfo_GetSongs(info) != 1) {
+		if (!ASAPWriter_WriteBytes(self, info->songPos, 0, ASAPInfo_GetSongs(info)))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 72))
+			return false;
+	}
+	int music = ASAPInfo_GetMusicAddress(info);
+	if (!ASAPWriter_WriteByte(self, 160))
+		return false;
+	if (!ASAPWriter_WriteByte(self, music & 255))
+		return false;
+	if (!ASAPWriter_WriteByte(self, 162))
+		return false;
+	if (!ASAPWriter_WriteByte(self, music >> 8))
+		return false;
+	if (!ASAPWriter_WriteByte(self, 169))
+		return false;
+	if (!ASAPWriter_WriteByte(self, 0))
+		return false;
+	if (!ASAPWriter_WriteByte(self, 32))
+		return false;
+	return ASAPWriter_WriteWord(self, player);
+}
+
+static bool ASAPWriter_WriteMptPlaySong(ASAPWriter *self, const ASAPInfo *info, int startAddr)
+{
+	if (ASAPInfo_GetSongs(info) != 1) {
+		if (!ASAPWriter_WriteByte(self, 104))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 168))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 190))
+			return false;
+		if (!ASAPWriter_WriteWord(self, startAddr))
+			return false;
+	}
+	else {
+		if (!ASAPWriter_WriteByte(self, 162))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 0))
+			return false;
+	}
+	if (!ASAPWriter_WriteByte(self, 169))
+		return false;
+	return ASAPWriter_WriteByte(self, 2);
+}
+
 static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, const ASAPInfo *info, uint8_t const *module, int moduleLen)
 {
 	uint8_t const *playerRoutine = ASAP6502_GetPlayerRoutine(info);
@@ -5206,47 +5259,9 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, con
 			return false;
 		if (!ASAPWriter_WriteWord(self, playerLastByte))
 			return false;
-		if (ASAPInfo_GetSongs(info) != 1) {
-			if (!ASAPWriter_WriteBytes(self, info->songPos, 0, ASAPInfo_GetSongs(info)))
-				return false;
-			if (!ASAPWriter_WriteByte(self, 72))
-				return false;
-		}
-		if (!ASAPWriter_WriteByte(self, 160))
+		if (!ASAPWriter_WriteMptInit(self, info, player))
 			return false;
-		if (!ASAPWriter_WriteByte(self, music & 255))
-			return false;
-		if (!ASAPWriter_WriteByte(self, 162))
-			return false;
-		if (!ASAPWriter_WriteByte(self, music >> 8))
-			return false;
-		if (!ASAPWriter_WriteByte(self, 169))
-			return false;
-		if (!ASAPWriter_WriteByte(self, 0))
-			return false;
-		if (!ASAPWriter_WriteByte(self, 32))
-			return false;
-		if (!ASAPWriter_WriteWord(self, player))
-			return false;
-		if (ASAPInfo_GetSongs(info) != 1) {
-			if (!ASAPWriter_WriteByte(self, 104))
-				return false;
-			if (!ASAPWriter_WriteByte(self, 168))
-				return false;
-			if (!ASAPWriter_WriteByte(self, 190))
-				return false;
-			if (!ASAPWriter_WriteWord(self, startAddr))
-				return false;
-		}
-		else {
-			if (!ASAPWriter_WriteByte(self, 162))
-				return false;
-			if (!ASAPWriter_WriteByte(self, 0))
-				return false;
-		}
-		if (!ASAPWriter_WriteByte(self, 169))
-			return false;
-		if (!ASAPWriter_WriteByte(self, 2))
+		if (!ASAPWriter_WriteMptPlaySong(self, info, startAddr))
 			return false;
 		if (!ASAPWriter_WriteBytes(self, playerRoutine, 6, playerLastByte - player + 7))
 			return false;
@@ -5279,27 +5294,7 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, con
 			return false;
 		if (!ASAPWriter_WriteWord(self, playerLastByte))
 			return false;
-		if (ASAPInfo_GetSongs(info) != 1) {
-			if (!ASAPWriter_WriteBytes(self, info->songPos, 0, ASAPInfo_GetSongs(info)))
-				return false;
-			if (!ASAPWriter_WriteByte(self, 72))
-				return false;
-		}
-		if (!ASAPWriter_WriteByte(self, 160))
-			return false;
-		if (!ASAPWriter_WriteByte(self, music & 255))
-			return false;
-		if (!ASAPWriter_WriteByte(self, 162))
-			return false;
-		if (!ASAPWriter_WriteByte(self, music >> 8))
-			return false;
-		if (!ASAPWriter_WriteByte(self, 169))
-			return false;
-		if (!ASAPWriter_WriteByte(self, 0))
-			return false;
-		if (!ASAPWriter_WriteByte(self, 32))
-			return false;
-		if (!ASAPWriter_WriteWord(self, player))
+		if (!ASAPWriter_WriteMptInit(self, info, player))
 			return false;
 		if (!ASAPWriter_WriteByte(self, 160))
 			return false;
@@ -5317,25 +5312,7 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, con
 			return false;
 		if (!ASAPWriter_WriteWord(self, player))
 			return false;
-		if (ASAPInfo_GetSongs(info) != 1) {
-			if (!ASAPWriter_WriteByte(self, 104))
-				return false;
-			if (!ASAPWriter_WriteByte(self, 168))
-				return false;
-			if (!ASAPWriter_WriteByte(self, 190))
-				return false;
-			if (!ASAPWriter_WriteWord(self, startAddr))
-				return false;
-		}
-		else {
-			if (!ASAPWriter_WriteByte(self, 162))
-				return false;
-			if (!ASAPWriter_WriteByte(self, 0))
-				return false;
-		}
-		if (!ASAPWriter_WriteByte(self, 169))
-			return false;
-		if (!ASAPWriter_WriteByte(self, 2))
+		if (!ASAPWriter_WriteMptPlaySong(self, info, startAddr))
 			return false;
 		if (!ASAPWriter_WriteByte(self, 32))
 			return false;

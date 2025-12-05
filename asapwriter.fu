@@ -444,6 +444,33 @@ public class ASAPWriter
 		return player - codeForOneSong;
 	}
 
+	void WriteMptInit!(ASAPInfo info, int player)
+		throws ASAPConversionException
+	{
+		if (info.GetSongs() != 1) {
+			WriteBytes(info.SongPos, 0, info.GetSongs());
+			WriteByte(0x48); // PHA
+		}
+		int music = info.GetMusicAddress();
+		WriteByte(0xa0); WriteByte(music & 0xff); // LDY #<MUSIC
+		WriteByte(0xa2); WriteByte(music >> 8); // LDX #>MUSIC
+		WriteByte(0xa9); WriteByte(0); // LDA #0
+		WriteByte(0x20); WriteWord(player); // JSR PLAYER
+	}
+
+	void WriteMptPlaySong!(ASAPInfo info, int startAddr)
+		throws ASAPConversionException
+	{
+		if (info.GetSongs() != 1) {
+			WriteByte(0x68); WriteByte(0xa8); // PLA; TAY
+			WriteByte(0xbe); WriteWord(startAddr); // LDX SONG2POS,Y
+		}
+		else {
+			WriteByte(0xa2); WriteByte(0); // LDX #0
+		}
+		WriteByte(0xa9); WriteByte(2); // LDA #2
+	}
+
 	internal void WriteExecutable!(int[]!? initAndPlayer, ASAPInfo info, byte[] module, int moduleLen)
 		throws ASAPConversionException
 	{
@@ -512,22 +539,8 @@ public class ASAPWriter
 			WriteBytes(module, 0, moduleLen);
 			WriteWord(startAddr);
 			WriteWord(playerLastByte);
-			if (info.GetSongs() != 1) {
-				WriteBytes(info.SongPos, 0, info.GetSongs());
-				WriteByte(0x48); // PHA
-			}
-			WriteByte(0xa0); WriteByte(music & 0xff); // LDY #<MUSIC
-			WriteByte(0xa2); WriteByte(music >> 8); // LDX #>MUSIC
-			WriteByte(0xa9); WriteByte(0); // LDA #0
-			WriteByte(0x20); WriteWord(player); // JSR PLAYER
-			if (info.GetSongs() != 1) {
-				WriteByte(0x68); WriteByte(0xa8); // PLA; TAY
-				WriteByte(0xbe); WriteWord(startAddr); // LDX SONG2POS,Y
-			}
-			else {
-				WriteByte(0xa2); WriteByte(0); // LDX #0
-			}
-			WriteByte(0xa9); WriteByte(2); // LDA #2
+			WriteMptInit(info, player);
+			WriteMptPlaySong(info, startAddr);
 			WriteBytes(playerRoutine, 6, playerLastByte - player + 7);
 			break;
 		case ASAPModuleType.Md1:
@@ -548,26 +561,12 @@ public class ASAPWriter
 			WriteBytes(samples.Content, 0, samples.ContentLength);
 			WriteWord(startAddr);
 			WriteWord(playerLastByte);
-			if (info.GetSongs() != 1) {
-				WriteBytes(info.SongPos, 0, info.GetSongs());
-				WriteByte(0x48); // PHA
-			}
-			WriteByte(0xa0); WriteByte(music & 0xff); // LDY #<MUSIC
-			WriteByte(0xa2); WriteByte(music >> 8); // LDX #>MUSIC
-			WriteByte(0xa9); WriteByte(0); // LDA #0
-			WriteByte(0x20); WriteWord(player); // JSR PLAYER
+			WriteMptInit(info, player);
 			WriteByte(0xa0); WriteByte(0xe0); // LDY #<SAMPLES
 			WriteByte(0xa2); WriteByte(samplesPage); // LDX #>SAMPLES
 			WriteByte(0xa9); WriteByte(3); // LDA #3
 			WriteByte(0x20); WriteWord(player); // JSR PLAYER
-			if (info.GetSongs() != 1) {
-				WriteByte(0x68); WriteByte(0xa8); // PLA; TAY
-				WriteByte(0xbe); WriteWord(startAddr); // LDX SONG2POS,Y
-			}
-			else {
-				WriteByte(0xa2); WriteByte(0); // LDX #0
-			}
-			WriteByte(0xa9); WriteByte(2); // LDA #2
+			WriteMptPlaySong(info, startAddr);
 			WriteByte(0x20); WriteWord(player); // JSR PLAYER
 			if (info.Type == ASAPModuleType.Md1) {
 				WriteByte(0xa2); WriteByte(samples.Is15kHz ? 1 : 0); // LDX #IS_15KHZ
