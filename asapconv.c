@@ -169,7 +169,7 @@ static void set_music_address(const char *s)
 	arg_music_address = parse_int(s, 16, "music address", 0xffff);
 }
 
-static void apply_tags(const char *input_file, ASAPInfo *info)
+static void apply_tags(ASAPInfo *info)
 {
 	if (arg_author != NULL) {
 		if (!ASAPInfo_SetAuthor(info, arg_author))
@@ -195,7 +195,7 @@ static ASAP *load_module(const char *input_file)
 	if (!ASAP_LoadFiles(asap, input_file, ASAPFileLoader_GetStdio()))
 		fatal_error("%s: cannot open", input_file);
 	ASAPInfo *info = (ASAPInfo *) ASAP_GetInfo(asap); /* FIXME: avoid cast */
-	apply_tags(input_file, info);
+	apply_tags(info);
 	return asap;
 }
 
@@ -552,7 +552,7 @@ static void convert_to_module(const char *input_file, bool output_xex)
 	static const ASAPWriterVtbl writer_vtbl = { ASAPWriter_Save };
 	*(const ASAPWriterVtbl **) writer = &writer_vtbl;
 	ASAPWriter_SetInput(writer, input_file, ASAPFileLoader_GetStdio());
-	apply_tags(input_file, info);
+	apply_tags(info);
 	if (arg_ntsc >= 0) {
 		if (!ASAPInfo_CanSetNtsc(info))
 			fatal_error("%s: cannot modify NTSC tag", input_file);
