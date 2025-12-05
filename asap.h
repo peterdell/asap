@@ -553,6 +553,15 @@ int ASAPWriter_GetSaveExts(const char **exts, const ASAPInfo *info);
 int ASAPWriter_DurationToString(uint8_t *result, int value);
 
 /**
+ * Sets the loader for extra input files, if they are needed.
+ * Conversion from MD1/MD2 to SAP/XEX needs an extra D15/D8 file.
+ * @param self This <code>ASAPWriter</code>.
+ * @param sourceFilename Filename of the main input.
+ * @param loader Loader for extra files, if needed.
+ */
+void ASAPWriter_SetInput(ASAPWriter *self, const char *sourceFilename, const ASAPFileLoader *loader);
+
+/**
  * Writes the a native module, possibly extracting it from a SAP file.
  * @param self This <code>ASAPWriter</code>.
  * @param info Source file information, optionally with the address changed.

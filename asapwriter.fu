@@ -242,6 +242,22 @@ public class ASAPWriter
 		return 9;
 	}
 
+	string SourceFilename;
+	ASAPFileLoader? Loader = null;
+
+	/// Sets the loader for extra input files, if they are needed.
+	/// Conversion from MD1/MD2 to SAP/XEX needs an extra D15/D8 file.
+	public void SetInput!(
+		/// Filename of the main input.
+		/// Used to form the filenames of the extra files.
+		string sourceFilename,
+		/// Loader for extra files, if needed.
+		ASAPFileLoader loader)
+	{
+		SourceFilename = sourceFilename;
+		Loader = loader;
+	}
+
 	int OutputLen;
 	byte[ASAPInfo.MaxModuleLength] Output;
 
@@ -512,6 +528,53 @@ public class ASAPWriter
 				WriteByte(0xa2); WriteByte(0); // LDX #0
 			}
 			WriteByte(0xa9); WriteByte(2); // LDA #2
+			WriteBytes(playerRoutine, 6, playerLastByte - player + 7);
+			break;
+		case ASAPModuleType.Md1:
+		case ASAPModuleType.Md2:
+			if (Loader == null)
+				throw ASAPConversionException("MD1/MD2 conversion not supported by this program");
+			ASAPMptSamples() samples;
+			if (!samples.Load(Loader, SourceFilename))
+				throw ASAPConversionException("Missing D15/D8 file");
+			samples.Relocate(music, music + moduleLen - 5);
+			int samplesPage = samples.Content[0] - 1;
+
+			int codeForOneSong = info.Type == ASAPModuleType.Md1 ? 29 : 27;
+			startAddr = WriteExecutableHeaderForSongPos(initAndPlayer, info, player, codeForOneSong, codeForOneSong + 4, 3);
+			WriteBytes(module, 0, moduleLen);
+			WriteByte(0xe0); WriteByte(samplesPage);
+			WriteByte(0xff); WriteByte(samplesPage + (samples.ContentLength >> 8));
+			WriteBytes(samples.Content, 0, samples.ContentLength);
+			WriteWord(startAddr);
+			WriteWord(playerLastByte);
+			if (info.GetSongs() != 1) {
+				WriteBytes(info.SongPos, 0, info.GetSongs());
+				WriteByte(0x48); // PHA
+			}
+			WriteByte(0xa0); WriteByte(music & 0xff); // LDY #<MUSIC
+			WriteByte(0xa2); WriteByte(music >> 8); // LDX #>MUSIC
+			WriteByte(0xa9); WriteByte(0); // LDA #0
+			WriteByte(0x20); WriteWord(player); // JSR PLAYER
+			WriteByte(0xa0); WriteByte(0xe0); // LDY #<SAMPLES
+			WriteByte(0xa2); WriteByte(samplesPage); // LDX #>SAMPLES
+			WriteByte(0xa9); WriteByte(3); // LDA #3
+			WriteByte(0x20); WriteWord(player); // JSR PLAYER
+			if (info.GetSongs() != 1) {
+				WriteByte(0x68); WriteByte(0xa8); // PLA; TAY
+				WriteByte(0xbe); WriteWord(startAddr); // LDX SONG2POS,Y
+			}
+			else {
+				WriteByte(0xa2); WriteByte(0); // LDX #0
+			}
+			WriteByte(0xa9); WriteByte(2); // LDA #2
+			WriteByte(0x20); WriteWord(player); // JSR PLAYER
+			if (info.Type == ASAPModuleType.Md1) {
+				WriteByte(0xa2); WriteByte(samples.Is15kHz ? 1 : 0); // LDX #IS_15KHZ
+				WriteByte(0xa9); WriteByte(5); // LDA #5
+			}
+			else
+				WriteByte(0xa9); WriteByte(5); // LDA #6
 			WriteBytes(playerRoutine, 6, playerLastByte - player + 7);
 			break;
 		case ASAPModuleType.Rmt:

@@ -192,7 +192,7 @@ static ASAP *load_module(const char *input_file)
 	if (asap == NULL)
 		fatal_error("out of memory");
 	ASAP_SetSampleRate(asap, arg_sample_rate);
-	if (!ASAPStdio_Load(asap, input_file))
+	if (!ASAP_LoadFiles(asap, input_file, ASAPFileLoader_GetStdio()))
 		fatal_error("%s: cannot open", input_file);
 	ASAPInfo *info = (ASAPInfo *) ASAP_GetInfo(asap); /* FIXME: avoid cast */
 	apply_tags(input_file, info);
@@ -551,6 +551,7 @@ static void convert_to_module(const char *input_file, bool output_xex)
 		fatal_error("out of memory");
 	static const ASAPWriterVtbl writer_vtbl = { ASAPWriter_Save };
 	*(const ASAPWriterVtbl **) writer = &writer_vtbl;
+	ASAPWriter_SetInput(writer, input_file, ASAPFileLoader_GetStdio());
 	apply_tags(input_file, info);
 	if (arg_ntsc >= 0) {
 		if (!ASAPInfo_CanSetNtsc(info))

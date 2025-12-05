@@ -59,17 +59,19 @@ class ASAPMptSamples
 		return ContentLength == (end - Content[0] << 8) + 0x20;
 	}
 
-	public void Load!(ASAPFileLoader loader, string moduleFilename)
-		throws ASAPFormatException
+	public bool Load!(ASAPFileLoader loader, string moduleFilename)
 	{
 		nint moduleFilenameLength = moduleFilename.Length;
 		if (moduleFilename[moduleFilenameLength - 1] == '1'
-		 && DoLoad(loader, moduleFilename, moduleFilenameLength, 15))
+		 && DoLoad(loader, moduleFilename, moduleFilenameLength, 15)) {
 			Is15kHz = true;
-		else if (DoLoad(loader, moduleFilename, moduleFilenameLength, 8))
+			return true;
+		}
+		if (DoLoad(loader, moduleFilename, moduleFilenameLength, 8)) {
 			Is15kHz = false;
-		else
-			throw ASAPFormatException("No valid file with MPT samples");
+			return true;
+		}
+		return false;
 	}
 
 	public void Relocate!(int music, int musicLast)
@@ -435,7 +437,8 @@ public class ASAP
 				if (loader == null)
 					throw ASAPFormatException("MD1/MD2 not supported in this ASAP port");
 				ASAPMptSamples() samples;
-				samples.Load(loader, filename);
+				if (!samples.Load(loader, filename))
+					throw ASAPFormatException("Missing D15/D8 file");
 				samples.Relocate(music, music + moduleLen - 5);
 				MptSamplesPage = samples.Content[0];
 				MptSamples15kHz = samples.Is15kHz;

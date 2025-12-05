@@ -23,7 +23,5 @@
 
 #pragma once
 
-#include <stdbool.h>
-
-typedef struct ASAP ASAP;
-bool ASAPStdio_Load(ASAP *asap, const char *filename);
+typedef struct ASAPFileLoader ASAPFileLoader;
+const ASAPFileLoader *ASAPFileLoader_GetStdio(void);

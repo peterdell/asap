@@ -24,7 +24,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "asap.h"
 #include "asap-stdio.h"
 
 typedef struct {
@@ -45,9 +44,9 @@ static int loader_load(const ASAPFileLoader *self, const char *filename, uint8_t
 	return length;
 }
 
-bool ASAPStdio_Load(ASAP *asap, const char *filename)
+const ASAPFileLoader *ASAPFileLoader_GetStdio(void)
 {
 	static const ASAPFileLoaderVtbl loader_vtbl = { loader_load };
 	static const ASAPFileLoader loader = { &loader_vtbl };
-	return ASAP_LoadFiles(asap, filename, &loader);
+	return &loader;
 }

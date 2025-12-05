@@ -527,7 +527,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	asap = ASAP_New();
-	if (!ASAPStdio_Load(asap, input_file)) {
+	if (!ASAP_LoadFiles(asap, input_file, ASAPFileLoader_GetStdio())) {
 		fprintf(stderr, "asapscan: %s: cannot open\n", input_file);
 		return 1;
 	}

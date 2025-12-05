@@ -494,6 +494,8 @@ typedef struct {
  */
 struct ASAPWriter {
 	const ASAPWriterVtbl *vtbl;
+	const char *sourceFilename;
+	const ASAPFileLoader *loader;
 	int outputLen;
 	uint8_t output[65000];
 };
@@ -2248,13 +2250,15 @@ static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *lo
 static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *loader, const char *moduleFilename)
 {
 	ptrdiff_t moduleFilenameLength = (ptrdiff_t) strlen(moduleFilename);
-	if (moduleFilename[moduleFilenameLength - 1] == '1' && ASAPMptSamples_DoLoad(self, loader, moduleFilename, moduleFilenameLength, 15))
+	if (moduleFilename[moduleFilenameLength - 1] == '1' && ASAPMptSamples_DoLoad(self, loader, moduleFilename, moduleFilenameLength, 15)) {
 		self->is15kHz = true;
-	else if (ASAPMptSamples_DoLoad(self, loader, moduleFilename, moduleFilenameLength, 8))
+		return true;
+	}
+	if (ASAPMptSamples_DoLoad(self, loader, moduleFilename, moduleFilenameLength, 8)) {
 		self->is15kHz = false;
-	else
-		return false;
-	return true;
+		return true;
+	}
+	return false;
 }
 
 static void ASAPMptSamples_Relocate(ASAPMptSamples *self, int music, int musicLast)
@@ -4777,6 +4781,7 @@ static void ASAPWriter_Construct(ASAPWriter *self)
 		ASAPWriter_Save,
 	};
 	self->vtbl = &vtbl;
+	self->loader = NULL;
 }
 
 ASAPWriter *ASAPWriter_New(void)
@@ -4849,6 +4854,12 @@ int ASAPWriter_DurationToString(uint8_t *result, int value)
 		return 8;
 	result[8] = (uint8_t) ('0' + value);
 	return 9;
+}
+
+void ASAPWriter_SetInput(ASAPWriter *self, const char *sourceFilename, const ASAPFileLoader *loader)
+{
+	self->sourceFilename = sourceFilename;
+	self->loader = loader;
 }
 
 static void ASAPWriter_ClearOutput(ASAPWriter *self)
@@ -5236,6 +5247,115 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, con
 		if (!ASAPWriter_WriteByte(self, 169))
 			return false;
 		if (!ASAPWriter_WriteByte(self, 2))
+			return false;
+		if (!ASAPWriter_WriteBytes(self, playerRoutine, 6, playerLastByte - player + 7))
+			return false;
+		break;
+	case ASAPModuleType_MD1:
+	case ASAPModuleType_MD2:
+		if (self->loader == NULL)
+			return false;
+		ASAPMptSamples samples;
+		if (!ASAPMptSamples_Load(&samples, self->loader, self->sourceFilename))
+			return false;
+		ASAPMptSamples_Relocate(&samples, music, music + moduleLen - 5);
+		int samplesPage = samples.content[0] - 1;
+		int codeForOneSong = info->type == ASAPModuleType_MD1 ? 29 : 27;
+		if ((startAddr = ASAPWriter_WriteExecutableHeaderForSongPos(self, initAndPlayer, info, player, codeForOneSong, codeForOneSong + 4, 3)) == -1)
+			return false;
+		if (!ASAPWriter_WriteBytes(self, module, 0, moduleLen))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 224))
+			return false;
+		if (!ASAPWriter_WriteByte(self, samplesPage))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 255))
+			return false;
+		if (!ASAPWriter_WriteByte(self, samplesPage + (samples.contentLength >> 8)))
+			return false;
+		if (!ASAPWriter_WriteBytes(self, samples.content, 0, samples.contentLength))
+			return false;
+		if (!ASAPWriter_WriteWord(self, startAddr))
+			return false;
+		if (!ASAPWriter_WriteWord(self, playerLastByte))
+			return false;
+		if (ASAPInfo_GetSongs(info) != 1) {
+			if (!ASAPWriter_WriteBytes(self, info->songPos, 0, ASAPInfo_GetSongs(info)))
+				return false;
+			if (!ASAPWriter_WriteByte(self, 72))
+				return false;
+		}
+		if (!ASAPWriter_WriteByte(self, 160))
+			return false;
+		if (!ASAPWriter_WriteByte(self, music & 255))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 162))
+			return false;
+		if (!ASAPWriter_WriteByte(self, music >> 8))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 169))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 0))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 32))
+			return false;
+		if (!ASAPWriter_WriteWord(self, player))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 160))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 224))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 162))
+			return false;
+		if (!ASAPWriter_WriteByte(self, samplesPage))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 169))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 3))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 32))
+			return false;
+		if (!ASAPWriter_WriteWord(self, player))
+			return false;
+		if (ASAPInfo_GetSongs(info) != 1) {
+			if (!ASAPWriter_WriteByte(self, 104))
+				return false;
+			if (!ASAPWriter_WriteByte(self, 168))
+				return false;
+			if (!ASAPWriter_WriteByte(self, 190))
+				return false;
+			if (!ASAPWriter_WriteWord(self, startAddr))
+				return false;
+		}
+		else {
+			if (!ASAPWriter_WriteByte(self, 162))
+				return false;
+			if (!ASAPWriter_WriteByte(self, 0))
+				return false;
+		}
+		if (!ASAPWriter_WriteByte(self, 169))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 2))
+			return false;
+		if (!ASAPWriter_WriteByte(self, 32))
+			return false;
+		if (!ASAPWriter_WriteWord(self, player))
+			return false;
+		if (info->type == ASAPModuleType_MD1) {
+			if (!ASAPWriter_WriteByte(self, 162))
+				return false;
+			if (!ASAPWriter_WriteByte(self, samples.is15kHz ? 1 : 0))
+				return false;
+			if (!ASAPWriter_WriteByte(self, 169))
+				return false;
+			if (!ASAPWriter_WriteByte(self, 5))
+				return false;
+		}
+		else {
+			if (!ASAPWriter_WriteByte(self, 169))
+				return false;
+		}
+		if (!ASAPWriter_WriteByte(self, 5))
 			return false;
 		if (!ASAPWriter_WriteBytes(self, playerRoutine, 6, playerLastByte - player + 7))
 			return false;

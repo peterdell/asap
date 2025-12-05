@@ -462,13 +462,23 @@ static bool ASAPWriter_Save(ASAPWriter *self, const char *filename, const uint8_
 
 static bool doSaveFile(const char *filename, bool tag)
 {
-	ASAPWriter *writer = ASAPWriter_New();
-	if (writer == NULL)
+	char sourceFilename[MAX_PATH];
+	SendDlgItemMessageA(infoDialog, IDC_FILENAME, WM_GETTEXT, MAX_PATH, (LPARAM) sourceFilename);
+	const char *sourceFilenamePtr = sourceFilename;
+	ASAPFileLoader *loader = ASAPFileLoader_Open(&sourceFilenamePtr);
+	if (loader == NULL)
 		return false;
+	ASAPWriter *writer = ASAPWriter_New();
+	if (writer == NULL) {
+		ASAPFileLoader_Close(loader);
+		return false;
+	}
 	static const ASAPWriterVtbl writer_vtbl = { ASAPWriter_Save };
 	*(const ASAPWriterVtbl **) writer = &writer_vtbl;
+	ASAPWriter_SetInput(writer, sourceFilenamePtr, loader);
 	bool ok = ASAPWriter_Write(writer, filename, edited_info, saved_module, saved_module_len, tag);
 	ASAPWriter_Delete(writer);
+	ASAPFileLoader_Close(loader);
 	return ok;
 }
 
