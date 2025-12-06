@@ -535,7 +535,7 @@ static bool ASAPWriter_WriteCmcInit(ASAPWriter *self, int *initAndPlayer, const 
 
 static bool ASAPWriter_WriteExecutableFromSap(ASAPWriter *self, int *initAndPlayer, const ASAPInfo *info, int type, uint8_t const *module, int moduleLen);
 
-static int ASAPWriter_WriteExecutableHeaderForSongPos(ASAPWriter *self, int *initAndPlayer, const ASAPInfo *info, int player, int codeForOneSong, int codeForManySongs, int playerOffset);
+static int ASAPWriter_WriteExecutableHeaderForSongPos(ASAPWriter *self, int *initAndPlayer, const ASAPInfo *info, int type, int player, int codeForOneSong, int codeForManySongs, int playerOffset);
 
 static bool ASAPWriter_WriteMptInit(ASAPWriter *self, const ASAPInfo *info, int player);
 
@@ -5101,12 +5101,12 @@ static bool ASAPWriter_WriteExecutableFromSap(ASAPWriter *self, int *initAndPlay
 	return ASAPWriter_WriteBytes(self, module, info->headerLen, moduleLen);
 }
 
-static int ASAPWriter_WriteExecutableHeaderForSongPos(ASAPWriter *self, int *initAndPlayer, const ASAPInfo *info, int player, int codeForOneSong, int codeForManySongs, int playerOffset)
+static int ASAPWriter_WriteExecutableHeaderForSongPos(ASAPWriter *self, int *initAndPlayer, const ASAPInfo *info, int type, int player, int codeForOneSong, int codeForManySongs, int playerOffset)
 {
 	if (ASAPInfo_GetSongs(info) != 1) {
-		return ASAPWriter_WriteExecutableHeader(self, initAndPlayer, info, 'B', player - codeForManySongs, player + playerOffset) ? player - codeForManySongs - ASAPInfo_GetSongs(info) : -1;
+		return ASAPWriter_WriteExecutableHeader(self, initAndPlayer, info, type, player - codeForManySongs, player + playerOffset) ? player - codeForManySongs - ASAPInfo_GetSongs(info) : -1;
 	}
-	return ASAPWriter_WriteExecutableHeader(self, initAndPlayer, info, 'B', player - codeForOneSong, player + playerOffset) ? player - codeForOneSong : -1;
+	return ASAPWriter_WriteExecutableHeader(self, initAndPlayer, info, type, player - codeForOneSong, player + playerOffset) ? player - codeForOneSong : -1;
 }
 
 static bool ASAPWriter_WriteMptInit(ASAPWriter *self, const ASAPInfo *info, int player)
@@ -5207,7 +5207,7 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, con
 			return false;
 		break;
 	case ASAPModuleType_DLT:
-		if ((startAddr = ASAPWriter_WriteExecutableHeaderForSongPos(self, initAndPlayer, info, player, 5, 7, 259)) == -1)
+		if ((startAddr = ASAPWriter_WriteExecutableHeaderForSongPos(self, initAndPlayer, info, 'B', player, 5, 7, 259)) == -1)
 			return false;
 		if (moduleLen == 11270) {
 			if (!ASAPWriter_WriteBytes(self, module, 0, 4))
@@ -5251,7 +5251,7 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, con
 			return false;
 		break;
 	case ASAPModuleType_MPT:
-		if ((startAddr = ASAPWriter_WriteExecutableHeaderForSongPos(self, initAndPlayer, info, player, 13, 17, 3)) == -1)
+		if ((startAddr = ASAPWriter_WriteExecutableHeaderForSongPos(self, initAndPlayer, info, 'B', player, 13, 17, 3)) == -1)
 			return false;
 		if (!ASAPWriter_WriteBytes(self, module, 0, moduleLen))
 			return false;
@@ -5276,7 +5276,7 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, con
 		ASAPMptSamples_Relocate(&samples, music, music + moduleLen - 5);
 		int samplesPage = samples.content[0] - 1;
 		int codeForOneSong = info->type == ASAPModuleType_MD1 ? 29 : 27;
-		if ((startAddr = ASAPWriter_WriteExecutableHeaderForSongPos(self, initAndPlayer, info, player, codeForOneSong, codeForOneSong + 4, 3)) == -1)
+		if ((startAddr = ASAPWriter_WriteExecutableHeaderForSongPos(self, initAndPlayer, info, 'D', player, codeForOneSong, codeForOneSong + 4, 3)) == -1)
 			return false;
 		if (!ASAPWriter_WriteBytes(self, module, 0, moduleLen))
 			return false;
@@ -5331,9 +5331,9 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, int *initAndPlayer, con
 		else {
 			if (!ASAPWriter_WriteByte(self, 169))
 				return false;
+			if (!ASAPWriter_WriteByte(self, 6))
+				return false;
 		}
-		if (!ASAPWriter_WriteByte(self, 5))
-			return false;
 		if (!ASAPWriter_WriteBytes(self, playerRoutine, 6, playerLastByte - player + 7))
 			return false;
 		break;

@@ -433,14 +433,14 @@ public class ASAPWriter
 		WriteBytes(module, info.HeaderLen, moduleLen);
 	}
 
-	ushort WriteExecutableHeaderForSongPos!(int[]!? initAndPlayer, ASAPInfo info, int player, int codeForOneSong, int codeForManySongs, int playerOffset)
+	ushort WriteExecutableHeaderForSongPos!(int[]!? initAndPlayer, ASAPInfo info, int type, int player, int codeForOneSong, int codeForManySongs, int playerOffset)
 		throws ASAPConversionException
 	{
 		if (info.GetSongs() != 1) {
-			WriteExecutableHeader(initAndPlayer, info, 'B', player - codeForManySongs, player + playerOffset);
+			WriteExecutableHeader(initAndPlayer, info, type, player - codeForManySongs, player + playerOffset);
 			return player - codeForManySongs - info.GetSongs();
 		}
-		WriteExecutableHeader(initAndPlayer, info, 'B', player - codeForOneSong, player + playerOffset);
+		WriteExecutableHeader(initAndPlayer, info, type, player - codeForOneSong, player + playerOffset);
 		return player - codeForOneSong;
 	}
 
@@ -511,7 +511,7 @@ public class ASAPWriter
 			WriteCmcInit(initAndPlayer, info);
 			break;
 		case ASAPModuleType.Dlt:
-			startAddr = WriteExecutableHeaderForSongPos(initAndPlayer, info, player, 5, 7, 0x103);
+			startAddr = WriteExecutableHeaderForSongPos(initAndPlayer, info, 'B', player, 5, 7, 0x103);
 			if (moduleLen == 0x2c06) {
 				// append zero to the module
 				WriteBytes(module, 0, 4);
@@ -535,7 +535,7 @@ public class ASAPWriter
 			WriteBytes(playerRoutine, 6, playerLastByte - player + 7);
 			break;
 		case ASAPModuleType.Mpt:
-			startAddr = WriteExecutableHeaderForSongPos(initAndPlayer, info, player, 13, 17, 3);
+			startAddr = WriteExecutableHeaderForSongPos(initAndPlayer, info, 'B', player, 13, 17, 3);
 			WriteBytes(module, 0, moduleLen);
 			WriteWord(startAddr);
 			WriteWord(playerLastByte);
@@ -554,7 +554,7 @@ public class ASAPWriter
 			int samplesPage = samples.Content[0] - 1;
 
 			int codeForOneSong = info.Type == ASAPModuleType.Md1 ? 29 : 27;
-			startAddr = WriteExecutableHeaderForSongPos(initAndPlayer, info, player, codeForOneSong, codeForOneSong + 4, 3);
+			startAddr = WriteExecutableHeaderForSongPos(initAndPlayer, info, 'D', player, codeForOneSong, codeForOneSong + 4, 3);
 			WriteBytes(module, 0, moduleLen);
 			WriteByte(0xe0); WriteByte(samplesPage);
 			WriteByte(0xff); WriteByte(samplesPage + (samples.ContentLength >> 8));
@@ -572,8 +572,9 @@ public class ASAPWriter
 				WriteByte(0xa2); WriteByte(samples.Is15kHz ? 1 : 0); // LDX #IS_15KHZ
 				WriteByte(0xa9); WriteByte(5); // LDA #5
 			}
-			else
-				WriteByte(0xa9); WriteByte(5); // LDA #6
+			else {
+				WriteByte(0xa9); WriteByte(6); // LDA #6
+			}
 			WriteBytes(playerRoutine, 6, playerLastByte - player + 7);
 			break;
 		case ASAPModuleType.Rmt:
