@@ -5776,6 +5776,8 @@ bool ASAPWriter_Write(ASAPWriter *self, const char *targetFilename, const ASAPIn
 				return false;
 			switch (info->type) {
 			case ASAPModuleType_SAP_D:
+			case ASAPModuleType_MD1:
+			case ASAPModuleType_MD2:
 				if (ASAPInfo_GetPlayerRateScanlines(info) != 312)
 					return false;
 				if (!ASAPWriter_WriteBytes(self, FuResource_xexd_obx, 2, 114))

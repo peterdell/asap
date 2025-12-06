@@ -941,6 +941,8 @@ public class ASAPWriter
 				WriteExecutable(initAndPlayer, info, module, moduleLen);
 				switch (info.Type) {
 				case ASAPModuleType.SapD:
+				case ASAPModuleType.Md1:
+				case ASAPModuleType.Md2:
 					if (info.GetPlayerRateScanlines() != 312)
 						throw ASAPConversionException("Impossible conversion");
 					WriteBytes(resource<byte[]>("xexd.obx"), 2, resource<byte[]>("xexd.obx").Length);
