@@ -34,9 +34,7 @@ package net.sf.asap;
 public class ASAPMusicRoutine
 {
 	private final ASAPWriter writer = new ASAPWriter();
-	private final int initAddress;
 	private final boolean fulltime;
-	private final int playerAddress;
 	private final int playerRate;
 
 	/**
@@ -51,12 +49,9 @@ public class ASAPMusicRoutine
 	{
 		ASAPInfo info = new ASAPInfo();
 		info.load(filename, module, moduleLen);
-		int[] initAndPlayer = new int[2];
-		writer.writeExecutable(initAndPlayer, info, module, moduleLen);
-		initAddress = initAndPlayer[0];
+		writer.writeExecutable(false, info, module, moduleLen);
 		// TODO: SAP_S
 		fulltime = info.type == ASAPModuleType.SAP_D;
-		playerAddress = initAndPlayer[1];
 		playerRate = info.getPlayerRateScanlines();
 	}
 
@@ -99,7 +94,7 @@ public class ASAPMusicRoutine
 	 *     jsr initMusic ; use the address returned by {@link #getInitAddress()}
 	 * </pre>
 	 */
-	public int getInitAddress() { return initAddress; }
+	public int getInitAddress() { return writer.init; }
 
 	/**
 	 * Returns <code>true</code> if the initialization routine doesn't return
@@ -116,7 +111,7 @@ public class ASAPMusicRoutine
 	 * The player routine should be called at a constant rate
 	 * with a <code>JSR</code>.
 	 */
-	public int getPlayerAddress() { return playerAddress; }
+	public int getPlayerAddress() { return writer.player; }
 
 	/**
 	 * Returns the rate at which the player routine should be called.
