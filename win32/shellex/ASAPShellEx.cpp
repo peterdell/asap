@@ -1,5 +1,5 @@
 /*
- * ASAPShellEx.cpp - ASAP Column Handler and Property Handler shell extensions
+ * ASAPShellEx.cpp - ASAP Property Handler shell extension
  *
  * Copyright (C) 2010-2025  Piotr Fusik
  *
