@@ -234,18 +234,18 @@
 					<?foreach EXT in $(var.ASAP_EXTS)?>
 						<RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers\.$(var.EXT)" Value="{5AE26367-B5CF-444D-B163-2CBC99B41287}" Type="string" />
 						<RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Explorer\KindMap" Name=".$(var.EXT)" Value="music" Type="string" />
-						<RegistryValue Root="HKCR" Key=".$(var.EXT)" Name="InfoTip" Value="prop:System.ItemType;System.Size;System.Media.Duration" Type="string" />
-						<RegistryValue Root="HKCR" Key=".$(var.EXT)" Name="ExtendedTileInfo" Value="prop:System.ItemType;System.Size;System.Media.Duration" Type="string" />
-						<RegistryValue Root="HKCR" Key=".$(var.EXT)" Name="PreviewDetails" Value="prop:*System.Title;*System.Media.Duration;*System.Size;*System.Author;*System.Media.Year" Type="string" />
-						<RegistryValue Root="HKCR" Key=".$(var.EXT)" Name="PerceivedType" Value="audio" Type="string" />
+						<RegistryValue Root="HKCR" Key="SystemFileAssociations\.$(var.EXT)" Name="InfoTip" Value="prop:System.ItemType;System.Size;System.Media.Duration" Type="string" />
+						<RegistryValue Root="HKCR" Key="SystemFileAssociations\.$(var.EXT)" Name="ExtendedTileInfo" Value="prop:System.ItemType;System.Size;System.Media.Duration" Type="string" />
+						<RegistryValue Root="HKCR" Key="SystemFileAssociations\.$(var.EXT)" Name="PreviewDetails" Value="prop:*System.Title;*System.Media.Duration;*System.Size;*System.Author;*System.Media.Year" Type="string" />
+						<RegistryValue Root="HKCR" Key="SystemFileAssociations\.$(var.EXT)" Name="PerceivedType" Value="audio" Type="string" />
 					<?endforeach?>
 					<?define FULLDETAILS_COMMON=System.PropGroup.Audio;System.Media.Duration;System.Audio.ChannelCount;ASAP.Subsongs;ASAP.PALNTSC;System.PropGroup.FileSystem;System.ItemNameDisplay;System.ItemType;System.ItemFolderPathDisplay;System.Size;System.DateCreated;System.DateModified;System.FileAttributes?>
-					<RegistryValue Root="HKCR" Key=".sap" Name="FullDetails" Value="prop:System.PropGroup.Description;System.Author;System.Title;System.Media.Year;$(var.FULLDETAILS_COMMON)" Type="string" />
+					<RegistryValue Root="HKCR" Key="SystemFileAssociations\.sap" Name="FullDetails" Value="prop:System.PropGroup.Description;System.Author;System.Title;System.Media.Year;$(var.FULLDETAILS_COMMON)" Type="string" />
 					<?foreach EXT in rmt;tmc;tm8;tm2?>
-						<RegistryValue Root="HKCR" Key=".$(var.EXT)" Name="FullDetails" Value="prop:System.PropGroup.Description;System.Title;$(var.FULLDETAILS_COMMON)" Type="string" />
+						<RegistryValue Root="HKCR" Key="SystemFileAssociations\.$(var.EXT)" Name="FullDetails" Value="prop:System.PropGroup.Description;System.Title;$(var.FULLDETAILS_COMMON)" Type="string" />
 					<?endforeach?>
 					<?foreach EXT in cmc;cm3;cmr;cms;dmc;dlt;mpt;md1;md2;mpd;fc?>
-						<RegistryValue Root="HKCR" Key=".$(var.EXT)" Name="FullDetails" Value="prop:$(var.FULLDETAILS_COMMON)" Type="string" />
+						<RegistryValue Root="HKCR" Key="SystemFileAssociations\.$(var.EXT)" Name="FullDetails" Value="prop:$(var.FULLDETAILS_COMMON)" Type="string" />
 					<?endforeach?>
 				</Component>
 
