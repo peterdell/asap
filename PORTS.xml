@@ -237,7 +237,7 @@
 		<stil>no</stil>
 		<comment class="bad">SAP format only</comment>
 		<lang>C</lang>
-		<a href="http://www.xmms2.org/">XMMS2</a>
+		<a href="https://github.com/xmms2">XMMS2</a>
 	</port>
 	<port name="GSPlayer">
 		<bin></bin>

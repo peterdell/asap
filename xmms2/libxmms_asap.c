@@ -1,7 +1,7 @@
 /*
  * libxmms_asap.c - ASAP plugin for XMMS2
  *
- * Copyright (C) 2021  Piotr Fusik
+ * Copyright (C) 2021-2025  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -106,7 +106,16 @@ static gboolean xmms_asap_setup(xmms_xform_plugin_t *xform_plugin)
 	return true;
 }
 
+#ifdef XMMS_XFORM_PLUGIN_DEFINE
+// xmms2-devel 0.9.x
+XMMS_XFORM_PLUGIN_DEFINE("asap",
+	"ASAP decoder", ASAPInfo_VERSION,
+	"Another Slight Atari Player decoder",
+	xmms_asap_setup);
+#else
+// xmms2-stable 0.8
 XMMS_XFORM_PLUGIN("asap",
 	"ASAP decoder", ASAPInfo_VERSION,
 	"Another Slight Atari Player decoder",
 	xmms_asap_setup);
+#endif
