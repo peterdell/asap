@@ -59,7 +59,7 @@ class PokeyChannel
 		Delta = 0;
 	}
 
-	internal void Slope!(Pokey! pokey, PokeyPair pokeys, int cycle)
+	void Slope!(Pokey! pokey, PokeyPair pokeys, int cycle)
 	{
 		Delta = -Delta;
 		pokey.AddDelta(pokeys, cycle, Delta);
@@ -96,6 +96,12 @@ class PokeyChannel
 			}
 		}
 		Slope(pokey, pokeys, cycle);
+	}
+
+	internal void SlopeDown!(Pokey! pokey, PokeyPair pokeys, int cycle)
+	{
+		if (Delta > 0 && Mute == 0)
+			Slope(pokey, pokeys, cycle);
 	}
 
 	internal void DoStimer!(Pokey! pokey, PokeyPair pokeys, int cycle, int reload)
@@ -282,15 +288,15 @@ class Pokey
 				break;
 
 			if (cycle == Channels[2].TickCycle) {
-				if ((Audctl & 4) != 0 && Channels[0].Delta > 0 && Channels[0].Mute == 0)
-					Channels[0].Slope(this, pokeys, cycle);
+				if ((Audctl & 4) != 0)
+					Channels[0].SlopeDown(this, pokeys, cycle);
 				Channels[2].DoTick(this, pokeys, cycle, 2);
 			}
 			if (cycle == Channels[3].TickCycle) {
 				if ((Audctl & 8) != 0)
 					Channels[2].TickCycle = cycle + ReloadCycles3;
-				if ((Audctl & 2) != 0 && Channels[1].Delta > 0 && Channels[1].Mute == 0)
-					Channels[1].Slope(this, pokeys, cycle);
+				if ((Audctl & 2) != 0)
+					Channels[1].SlopeDown(this, pokeys, cycle);
 				Channels[3].DoTick(this, pokeys, cycle, 3);
 			}
 			if (cycle == Channels[0].TickCycle) {

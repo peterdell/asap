@@ -184,6 +184,8 @@ static void PokeyChannel_Slope(PokeyChannel *self, Pokey *pokey, const PokeyPair
 
 static void PokeyChannel_DoTick(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int ch);
 
+static void PokeyChannel_SlopeDown(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle);
+
 static void PokeyChannel_DoStimer(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int reload);
 
 static void PokeyChannel_SetMute(PokeyChannel *self, bool enable, int mask, int cycle);
@@ -7341,6 +7343,12 @@ static void PokeyChannel_DoTick(PokeyChannel *self, Pokey *pokey, const PokeyPai
 	PokeyChannel_Slope(self, pokey, pokeys, cycle);
 }
 
+static void PokeyChannel_SlopeDown(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle)
+{
+	if (self->delta > 0 && self->mute == 0)
+		PokeyChannel_Slope(self, pokey, pokeys, cycle);
+}
+
 static void PokeyChannel_DoStimer(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int reload)
 {
 	if (self->tickCycle != 8388608)
@@ -7466,15 +7474,15 @@ static void Pokey_GenerateUntilCycle(Pokey *self, const PokeyPair *pokeys, int c
 		if (cycle == cycleLimit)
 			break;
 		if (cycle == self->channels[2].tickCycle) {
-			if ((self->audctl & 4) != 0 && self->channels[0].delta > 0 && self->channels[0].mute == 0)
-				PokeyChannel_Slope(&self->channels[0], self, pokeys, cycle);
+			if ((self->audctl & 4) != 0)
+				PokeyChannel_SlopeDown(&self->channels[0], self, pokeys, cycle);
 			PokeyChannel_DoTick(&self->channels[2], self, pokeys, cycle, 2);
 		}
 		if (cycle == self->channels[3].tickCycle) {
 			if ((self->audctl & 8) != 0)
 				self->channels[2].tickCycle = cycle + self->reloadCycles3;
-			if ((self->audctl & 2) != 0 && self->channels[1].delta > 0 && self->channels[1].mute == 0)
-				PokeyChannel_Slope(&self->channels[1], self, pokeys, cycle);
+			if ((self->audctl & 2) != 0)
+				PokeyChannel_SlopeDown(&self->channels[1], self, pokeys, cycle);
 			PokeyChannel_DoTick(&self->channels[3], self, pokeys, cycle, 3);
 		}
 		if (cycle == self->channels[0].tickCycle) {
