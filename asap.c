@@ -180,6 +180,8 @@ struct PokeyChannel {
 
 static void PokeyChannel_Initialize(PokeyChannel *self);
 
+static void PokeyChannel_AddDelta(const PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int delta);
+
 static void PokeyChannel_Slope(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle);
 
 static void PokeyChannel_DoTick(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int ch);
@@ -223,7 +225,7 @@ static void Pokey_StartFrame(Pokey *self);
 
 static void Pokey_Initialize(Pokey *self, int sampleRate);
 
-static void Pokey_AddDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta);
+static void Pokey_AddDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta, bool muted);
 
 static void Pokey_AddExternalDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta);
 
@@ -7304,10 +7306,15 @@ static void PokeyChannel_Initialize(PokeyChannel *self)
 	self->delta = 0;
 }
 
+static void PokeyChannel_AddDelta(const PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int delta)
+{
+	Pokey_AddDelta(pokey, pokeys, cycle, delta, (self->mute & 2) != 0);
+}
+
 static void PokeyChannel_Slope(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle)
 {
 	self->delta = -self->delta;
-	Pokey_AddDelta(pokey, pokeys, cycle, self->delta);
+	PokeyChannel_AddDelta(self, pokey, pokeys, cycle, self->delta);
 }
 
 static void PokeyChannel_DoTick(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int ch)
@@ -7380,15 +7387,13 @@ static void PokeyChannel_SetAudc(PokeyChannel *self, Pokey *pokey, const PokeyPa
 	self->audc = data;
 	if ((data & 16) != 0) {
 		data &= 15;
-		if ((self->mute & 2) == 0)
-			Pokey_AddDelta(pokey, pokeys, cycle, self->delta > 0 ? data - self->delta : data);
+		PokeyChannel_AddDelta(self, pokey, pokeys, cycle, self->delta > 0 ? data - self->delta : data);
 		self->delta = data;
 	}
 	else {
 		data &= 15;
 		if (self->delta > 0) {
-			if ((self->mute & 2) == 0)
-				Pokey_AddDelta(pokey, pokeys, cycle, data - self->delta);
+			PokeyChannel_AddDelta(self, pokey, pokeys, cycle, data - self->delta);
 			self->delta = data;
 		}
 		else
@@ -7442,9 +7447,11 @@ static void Pokey_Initialize(Pokey *self, int sampleRate)
 	Pokey_StartFrame(self);
 }
 
-static void Pokey_AddDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta)
+static void Pokey_AddDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta, bool muted)
 {
 	self->sumDACInputs += delta;
+	if (muted)
+		return;
 	int newOutput = Pokey_COMPRESSED_SUMS[self->sumDACInputs] << 16;
 	Pokey_AddExternalDelta(self, pokeys, cycle, newOutput - self->sumDACOutputs);
 	self->sumDACOutputs = newOutput;
