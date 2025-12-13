@@ -2268,7 +2268,7 @@ static bool ASAPMptSamples_Load(ASAPMptSamples *self, const ASAPFileLoader *load
 static void ASAPMptSamples_Relocate(ASAPMptSamples *self, int music, int musicLast)
 {
 	int start = (self->content[0] << 8) - 32;
-	if (musicLast < start || music >= start + self->contentLength)
+	if ((musicLast < start || music >= start + self->contentLength) && start >= 3840)
 		return;
 	int h = 4064 + self->contentLength <= music ? 16 : (53280 - self->contentLength) >> 8;
 	h -= self->content[0];

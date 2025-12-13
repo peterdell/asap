@@ -77,7 +77,7 @@ class ASAPMptSamples
 	public void Relocate!(int music, int musicLast)
 	{
 		int start = (Content[0] << 8) - 0x20;
-		if (musicLast < start || music >= start + ContentLength)
+		if ((musicLast < start || music >= start + ContentLength) && start >= 0xf00) // assume player ends before $0f00
 			return;
 		int h = 0x0fe0 + ContentLength <= music ? 0x10 : (0xd020 - ContentLength) >> 8;
 		h -= Content[0];
@@ -430,7 +430,7 @@ public class ASAP
 			int player = ASAPInfo.GetWord(playerRoutine, 2);
 			int playerLastByte = ASAPInfo.GetWord(playerRoutine, 4);
 			int music = ModuleInfo.GetMusicAddress();
-			if (music <= playerLastByte)
+			if (music <= playerLastByte) // FIXME: MPT player has variables at the end
 				throw ASAPFormatException("Module address conflicts with the player routine");
 #if !OPENCL
 			if (ModuleInfo.Type == ASAPModuleType.Md1 || ModuleInfo.Type == ASAPModuleType.Md2) {
