@@ -58,7 +58,7 @@ CLEANDIR += release/osx
 release/osx/plugins:
 	$(DO)ln -s /Applications/VLC.app/Contents/MacOS/plugins $@
 
-release/osx/asapconv: $(call src,asapconv.c asap.[ch])
+release/osx/asapconv: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
 	$(OSX_CC)
 
 release/osx/bin:
