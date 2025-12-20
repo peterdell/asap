@@ -25,7 +25,7 @@ static void FuString_Assign(char **str, char *value)
 
 static char *FuString_Substring(const char *str, size_t len)
 {
-	char *p = malloc(len + 1);
+	char *p = (char *) malloc(len + 1);
 	memcpy(p, str, len);
 	p[len] = '\0';
 	return p;
@@ -38,7 +38,7 @@ static char *FuString_Format(const char *format, ...)
 	size_t len = vsnprintf(NULL, 0, format, args) + 1;
 	va_end(args);
 	va_start(args, format);
-	char *str = malloc(len);
+	char *str = (char *) malloc(len);
 	vsnprintf(str, len, format, args);
 	va_end(args);
 	return str;
