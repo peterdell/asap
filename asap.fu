@@ -56,7 +56,7 @@ class ASAPMptSamples
 			if (end <= start)
 				return false;
 		}
-		return ContentLength == (end - Content[0] << 8) + 0x20;
+		return ContentLength >= (end - Content[0] << 8) + 0x20; // equal, or garbage data at the end
 	}
 
 	public bool Load!(ASAPFileLoader loader, string moduleFilename)

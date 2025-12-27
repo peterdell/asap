@@ -2250,7 +2250,7 @@ static bool ASAPMptSamples_DoLoad(ASAPMptSamples *self, const ASAPFileLoader *lo
 			return false;
 		}
 	}
-	bool returnValue = self->contentLength == ((end - self->content[0]) << 8) + 32;
+	bool returnValue = self->contentLength >= ((end - self->content[0]) << 8) + 32;
 	free(filename);
 	return returnValue;
 }
