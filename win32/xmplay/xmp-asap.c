@@ -321,7 +321,7 @@ static void WINAPI ASAP_GetSamples(char *buf)
 		buf += sprintf(buf, "instrument list:\r\n");
 		do {
 			const char *s = (const char *) module + offset;
-			buf += sprintf(buf, "%03d\t%s\r\n", i, s);
+			buf += sprintf(buf, "%03d\t%s\r\n", ++i, s);
 			offset += strnlen(s, module_len - offset) + 1;
 		} while (offset < module_len);
 		buf[-2] = '\0'; /* chomp trailing \r\n */
