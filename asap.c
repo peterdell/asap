@@ -4104,6 +4104,7 @@ static bool ASAPInfo_ParseSap(ASAPInfo *self, uint8_t const *module, int moduleL
 	}
 	if (self->defaultSong >= self->songs)
 		return false;
+	self->headerLen = moduleIndex;
 	switch (type) {
 	case 'B':
 		if (self->player < 0)
@@ -4166,7 +4167,6 @@ static bool ASAPInfo_ParseSap(ASAPInfo *self, uint8_t const *module, int moduleL
 		self->fastplay = self->ntsc ? 262 : 312;
 	if (module[moduleIndex + 1] != 255)
 		return false;
-	self->headerLen = moduleIndex;
 	return true;
 }
 

@@ -1329,6 +1329,7 @@ public class ASAPInfo
 
 		if (DefaultSong >= Songs)
 			throw ASAPFormatException("DEFSONG too big");
+		HeaderLen = moduleIndex;
 		switch (type) {
 		case 'B':
 			if (Player < 0)
@@ -1393,7 +1394,6 @@ public class ASAPInfo
 			Fastplay = Ntsc ? 262 : 312;
 		if (module[moduleIndex + 1] != 0xff)
 			throw ASAPFormatException("Invalid binary header");
-		HeaderLen = moduleIndex;
 	}
 
 	internal static int PackExt(string ext)
