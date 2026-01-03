@@ -1,7 +1,7 @@
 /*
  * libxmms_asap.c - ASAP plugin for XMMS2
  *
- * Copyright (C) 2021-2025  Piotr Fusik
+ * Copyright (C) 2021-2026  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
