@@ -235,7 +235,7 @@
 		<config-time>no</config-time>
 		<mute-pokey>no</mute-pokey>
 		<stil>no</stil>
-		<comment class="bad">SAP format only</comment>
+		<comment class="bad">SAP and FC formats only</comment>
 		<lang>C</lang>
 		<a href="https://github.com/xmms2">XMMS2</a>
 	</port>

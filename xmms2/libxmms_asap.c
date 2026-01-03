@@ -101,8 +101,11 @@ static gboolean xmms_asap_setup(xmms_xform_plugin_t *xform_plugin)
 
 	xmms_xform_plugin_methods_set(xform_plugin, &methods);
 	xmms_xform_plugin_indata_add(xform_plugin, XMMS_STREAM_TYPE_MIMETYPE, "application/x-sap", XMMS_STREAM_TYPE_END);
+	xmms_xform_plugin_indata_add(xform_plugin, XMMS_STREAM_TYPE_MIMETYPE, "application/x-fc", XMMS_STREAM_TYPE_END);
 	xmms_magic_add("SAP file", "application/x-sap", "0 string SAP", NULL);
+	xmms_magic_add("FC file", "application/x-fc", "0 string &#", NULL);
 	xmms_magic_extension_add("application/x-sap", "*.sap");
+	xmms_magic_extension_add("application/x-fc", "*.fc");
 	return true;
 }
 
