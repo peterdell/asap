@@ -4,12 +4,14 @@
 		<?define PLATFORM_BITS=32-bit?>
 		<?define UPGRADE_GUID=4250B3CB-D4A1-4486-828C-AC26A84D00D9?>
 		<?define SRC_DIR=""?>
+		<?define FOO_COMP_DIR=user-components?>
 		<?define SHELL_EX_LEVEL=9?>
 	<?elseif $(sys.BUILDARCH) = x64?>
 		<?define PLATFORM_SUFFIX=" (64-bit)"?>
 		<?define PLATFORM_BITS=64-bit?>
 		<?define UPGRADE_GUID=205ADAB1-56A1-42B9-9789-FD20FCD1DF9B?>
 		<?define SRC_DIR=x64\?>
+		<?define FOO_COMP_DIR=user-components-x64?>
 		<?define SHELL_EX_LEVEL=1?>
 	<?endif?>
 
@@ -143,9 +145,6 @@
 		</UI>
 		<UIRef Id="WixUI_Common" />
 
-		<Property Id="FOO.DIR">
-			<RegistrySearch Id="foo.installdir" Root="HKLM" Key="SOFTWARE\foobar2000" Name="InstallDir" Type="directory" />
-		</Property>
 		<Property Id="FOO.EXE">
 			<RegistrySearch Id="foo.exe" Root="HKLM" Key="SOFTWARE\foobar2000" Name="InstallDir" Type="directory">
 				<FileSearch Name="foobar2000.exe" />
@@ -192,6 +191,28 @@
 			</RegistrySearch>
 		</Property>
 		<?endif?>
+
+		<StandardDirectory Id="AppDataFolder">
+			<Directory Name="foobar2000-v2">
+				<Directory Name="$(var.FOO_COMP_DIR)">
+					<Directory Id="FOO.DIR" Name="foo_asap">
+						<Component Id="foo_asap.dll">
+							<File Source="$(var.SRC_DIR)foo_asap.dll" Checksum="yes" KeyPath="yes" />
+						</Component>
+						<Component Id="foo_asap.ext">
+							<RegistryValue Root="HKCR" Key="asap.file" Name="foo_asap" Type="integer" Value="1" KeyPath="yes" />
+							<?foreach EXT in $(var.NATIVE_EXTS)?>
+								<ProgId Id="foobar2000.$(var.EXT)">
+									<Extension Id="$(var.EXT)">
+										<Verb Id="open" TargetProperty="FOO.EXE" Argument="&quot;%1&quot;" />
+									</Extension>
+								</ProgId>
+							<?endforeach?>
+						</Component>
+					</Directory>
+				</Directory>
+			</Directory>
+		</StandardDirectory>
 
 		<StandardDirectory Id="ProgramFiles6432Folder">
 			<Directory Id="ASAP.DIR" Name="ASAP">
@@ -265,23 +286,6 @@
 				<?endif?>
 			</Directory>
 
-			<Directory Id="FOO.DIR" Name="foobar2000">
-				<Directory Id="FOOCOMP.DIR" Name="components">
-					<Component Id="foo_asap.dll">
-						<File Source="$(var.SRC_DIR)foo_asap.dll" Checksum="yes" KeyPath="yes" />
-					</Component>
-					<Component Id="foo_asap.ext">
-						<RegistryValue Root="HKCR" Key="asap.file" Name="foo_asap" Type="integer" Value="1" KeyPath="yes" />
-						<?foreach EXT in $(var.NATIVE_EXTS)?>
-							<ProgId Id="foobar2000.$(var.EXT)">
-								<Extension Id="$(var.EXT)">
-									<Verb Id="open" TargetProperty="FOO.EXE" Argument="&quot;%1&quot;" />
-								</Extension>
-							</ProgId>
-						<?endforeach?>
-					</Component>
-				</Directory>
-			</Directory>
 			<Directory Id="AIMP.DIR" Name="AIMP">
 				<Directory Id="AIMPPLUG.DIR" Name="Plugins">
 					<Directory Id="AIMPASAP.DIR" Name="bass_asap">
@@ -383,8 +387,8 @@
 		</StandardDirectory>
 		<?endif?>
 
-		<Feature Id="foo_asap" Title="foobar2000 plugin" Level="9" ConfigurableDirectory="FOOCOMP.DIR" Description="Plugin for $(var.PLATFORM_BITS) foobar2000." AllowAdvertise="no">
-			<Level Value="1" Condition="FOO.DIR" />
+		<Feature Id="foo_asap" Title="foobar2000 plugin" Level="9" ConfigurableDirectory="FOO.DIR" Description="Plugin for $(var.PLATFORM_BITS) foobar2000." AllowAdvertise="no">
+			<Level Value="1" Condition="FOO.EXE" />
 			<ComponentRef Id="foo_asap.dll" />
 			<Feature Id="foo_asap.ext" Title="Associate file types" Level="0" Description="$(var.DOUBLECLICK) foobar2000." AllowAdvertise="no">
 				<Level Value="9" Condition="FOO.EXE" />
