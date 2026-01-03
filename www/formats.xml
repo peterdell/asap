@@ -70,7 +70,7 @@
 
 	<p>For viewing Atari pictures, check out my other project <a href="https://recoil.sourceforge.net/">RECOIL</a>.</p>
 
-	<h2>Subsongs</h2>
+	<h2 id="subsongs">Subsongs</h2>
 	<p>One file usually contains one song, but some files contain many songs (<em>"subsongs"</em>).
 	For example, a SAP file ripped from a game might contain a title song, an in-game song and a "game over" song.
 	The songs in a file are numbered and one of them is marked as default.</p>
