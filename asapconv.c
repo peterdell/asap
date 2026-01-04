@@ -522,6 +522,88 @@ static void convert_to_mp3(const char *input_file)
 
 #endif /* HAVE_LIBMP3LAME */
 
+static int read_one_sample(FILE *fp, bool is_16bit, const char *wav_file)
+{
+	if (is_16bit)
+		getc(fp);
+	int sample = getc(fp);
+	if (sample < 0)
+		fatal_error("%s: error reading", wav_file);
+	if (is_16bit)
+		sample ^= 0x80;
+	sample += 8;
+	return sample >= 0x100 ? 0xf : sample >> 4;
+}
+
+static void convert_to_d15(const char *input_file, bool output_d8)
+{
+	const char *input_ext = strrchr(input_file, '.');
+	if (input_ext == NULL || input_ext == input_file || strcmp(input_ext - 1, "0.wav") != 0)
+		fatal_error("%s: filename must end in 0.wav", input_file);
+
+	uint8_t samples[32 + 12 * 1024];
+	memset(samples, 0, 32);
+	int samples_len = 0;
+	for (int sample = 0; sample < 16; sample++) {
+		// open WAV file
+		char wav_file[FILENAME_MAX];
+		if (snprintf(wav_file, sizeof(wav_file), "%.*s%x.wav", (int) (input_ext - input_file - 1), input_file, sample) >= FILENAME_MAX)
+			fatal_error("%s: input filename too long", input_file);
+		FILE *fp = fopen(wav_file, "rb");
+		if (fp == NULL) {
+			if (sample == 0)
+				fatal_error("%s: cannot open", wav_file);
+			break;
+		}
+
+		// check WAV header
+		uint8_t wav_header[44];
+		if (fread(wav_header, 44, 1, fp) != 1)
+			fatal_error("%s: error reading header", wav_file);
+		if (memcmp(wav_header, "RIFF", 4) != 0 || memcmp(wav_header + 8, "WAVEfmt \x10\0\0", 12) != 0
+		 || wav_header[33] != 0 || wav_header[35] != 0
+		 || memcmp(wav_header + 36, "data", 4) != 0)
+			fatal_error("%s: not a WAV file", wav_file);
+		if (memcmp(wav_header + 20, "\1\0\1\0", 4) != 0)
+			fatal_error("%s: not a mono PCM file", wav_file);
+		uint8_t block_size = wav_header[32];
+		if (block_size < 1 || block_size > 2 || wav_header[34] != 4 << block_size)
+			fatal_error("%s: not 8-bit or 16-bit", wav_file);
+		uint32_t wav_rate = wav_header[24] | wav_header[25] << 8 | wav_header[26] << 16 | wav_header[27] << 24;
+		if (wav_rate < 14200 >> output_d8 || wav_rate > 15556 >> output_d8)
+			fatal_error("%s: invalid sample rate, should be %d\n", wav_file, 15000 >> output_d8);
+		uint32_t wav_len = wav_header[40] | wav_header[41] << 8 | wav_header[42] << 16 | wav_header[43] << 24;
+		wav_len /= block_size;
+
+		// convert
+		static const int page = 0x90;
+		samples[sample] = page + (samples_len >> 8);
+		int read_len = samples_len;
+		for (uint32_t block = 0; block < wav_len; block += 2) {
+			int hi = read_one_sample(fp, block_size == 2, wav_file);
+			int lo = block + 1 < wav_len ? read_one_sample(fp, block_size == 2, wav_file) : hi;
+			uint8_t b = hi << 4 | lo;
+			if (b != 0x88) {
+				if (read_len >= 12 * 1024)
+					fatal_error("%s: samples too long", wav_file);
+				memset(samples + 32 + samples_len, 0x88, read_len - samples_len);
+				samples_len = read_len;
+				samples[32 + samples_len++] = b;
+			}
+			read_len++;
+		}
+		fclose(fp);
+		memset(samples + 32 + samples_len, 0x88, -samples_len & 0xff);
+		samples_len = (samples_len + 0xff) & ~0xff;
+		samples[16 + sample] = page + (samples_len >> 8);
+	}
+
+	// write result file
+	FILE *fp = create_file(arg_output);
+	write_output_file(fp, samples, 32 + samples_len);
+	close_output_file(fp);
+}
+
 typedef struct {
 	bool (*save)(ASAPWriter *self, const char *filename, const uint8_t *buffer, int offset, int length);
 } ASAPWriterVtbl;
@@ -595,6 +677,10 @@ static void process_file(const char *input_file)
 		fatal_error("this build of asapconv doesn't support MP3");
 #endif
 	}
+	else if (strcasecmp(output_ext, "d15") == 0)
+		convert_to_d15(input_file, false);
+	else if (strcasecmp(output_ext, "d8") == 0)
+		convert_to_d15(input_file, true);
 	else
 		convert_to_module(input_file, strcasecmp(output_ext, "xex") == 0);
 }
