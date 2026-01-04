@@ -537,8 +537,8 @@ static int read_one_sample(FILE *fp, bool is_16bit, const char *wav_file)
 
 static void convert_to_d15(const char *input_file, bool output_d8)
 {
-	const char *input_ext = strrchr(input_file, '.');
-	if (input_ext == NULL || input_ext == input_file || strcmp(input_ext - 1, "0.wav") != 0)
+	int input_len = (int) strlen(input_file) - 5;
+	if (input_len < 0 || strcmp(input_file + input_len, "0.wav") != 0)
 		fatal_error("%s: filename must end in 0.wav", input_file);
 
 	uint8_t samples[32 + 12 * 1024];
@@ -547,7 +547,7 @@ static void convert_to_d15(const char *input_file, bool output_d8)
 	for (int sample = 0; sample < 16; sample++) {
 		// open WAV file
 		char wav_file[FILENAME_MAX];
-		if (snprintf(wav_file, sizeof(wav_file), "%.*s%x.wav", (int) (input_ext - input_file - 1), input_file, sample) >= FILENAME_MAX)
+		if (snprintf(wav_file, sizeof(wav_file), "%.*s%x.wav", input_len, input_file, sample) >= FILENAME_MAX)
 			fatal_error("%s: input filename too long", input_file);
 		FILE *fp = fopen(wav_file, "rb");
 		if (fp == NULL) {
@@ -576,8 +576,8 @@ static void convert_to_d15(const char *input_file, bool output_d8)
 		wav_len /= block_size;
 
 		// convert
-		static const int page = 0x90;
-		samples[sample] = page + (samples_len >> 8);
+		static const int start_page = 0x90;
+		samples[sample] = start_page + (samples_len >> 8);
 		int read_len = samples_len;
 		for (uint32_t block = 0; block < wav_len; block += 2) {
 			int hi = read_one_sample(fp, block_size == 2, wav_file);
@@ -593,9 +593,10 @@ static void convert_to_d15(const char *input_file, bool output_d8)
 			read_len++;
 		}
 		fclose(fp);
-		memset(samples + 32 + samples_len, 0x88, -samples_len & 0xff);
-		samples_len = (samples_len + 0xff) & ~0xff;
-		samples[16 + sample] = page + (samples_len >> 8);
+		int padding_len = -samples_len & 0xff;
+		memset(samples + 32 + samples_len, 0x88, padding_len);
+		samples_len += padding_len;
+		samples[16 + sample] = start_page + (samples_len >> 8);
 	}
 
 	// write result file
