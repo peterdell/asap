@@ -1,7 +1,7 @@
 /*
  * ASAPShellEx.cpp - ASAP Property Handler shell extension
  *
- * Copyright (C) 2010-2025  Piotr Fusik
+ * Copyright (C) 2010-2026  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -57,7 +57,8 @@ static const SHCOLUMNID g_scids[] = {
 	{ FMTID_AudioSummaryInformation, PIDASI_TIMELENGTH },
 	{ FMTID_AudioSummaryInformation, PIDASI_CHANNEL_COUNT },
 	{ CLSID_ASAPMetadataHandler, 1 },
-	{ CLSID_ASAPMetadataHandler, 2 }
+	{ CLSID_ASAPMetadataHandler, 2 },
+	{ CLSID_ASAPMetadataHandler, 3 }
 };
 
 class CMyLock
@@ -238,6 +239,8 @@ class CASAPMetadataHandler final : IInitializeWithStream, IPropertyStore, IPrope
 				return InitPropVariantFromUInt32(ASAPInfo_GetSongs(m_info), pvarData);
 			if (pscid->pid == 2)
 				return GetString(pvarData, ASAPInfo_IsNtsc(m_info) ? "NTSC" : "PAL");
+			if (pscid->pid == 3)
+				return GetString(pvarData, ASAPInfo_GetDate(m_info));
 		}
 		return S_FALSE;
 	}
@@ -402,6 +405,10 @@ public:
 			if (key.pid == PIDSI_YEAR)
 				return SetString(ASAPInfo_SetDate, propvar);
 		}
+		else if (key.fmtid == CLSID_ASAPMetadataHandler) {
+			if (key.pid == 3)
+				return SetString(ASAPInfo_SetDate, propvar);
+		}
 		return E_FAIL;
 	}
 
@@ -456,6 +463,10 @@ public:
 		}
 		else if (key.fmtid == FMTID_MUSIC) {
 			if (key.pid == PIDSI_ARTIST || key.pid == PIDSI_YEAR)
+				return S_OK;
+		}
+		else if (key.fmtid == CLSID_ASAPMetadataHandler) {
+			if (key.pid == 3)
 				return S_OK;
 		}
 		return S_FALSE;
