@@ -324,7 +324,7 @@ static FILE *create_file(const char *filename)
 	}
 	FILE *fp = fopen(filename, "wb");
 	if (fp == NULL)
-		fatal_error("cannot write %s", filename);
+		fatal_error("%s: cannot write", filename);
 	return fp;
 }
 
@@ -352,7 +352,7 @@ static void write_output_file(FILE *fp, const uint8_t *buffer, int n_bytes)
 	if (fwrite(buffer, 1, n_bytes, fp) != n_bytes) {
 		if (fp != stdout)
 			fclose(fp);
-		fatal_error("error writing to %s", output_file);
+		fatal_error("%s: error writing", output_file);
 	}
 }
 
@@ -538,7 +538,7 @@ static void convert_to_module(const char *input_file, bool output_xex)
 {
 	FILE *fp = fopen(input_file, "rb");
 	if (fp == NULL)
-		fatal_error("cannot open %s", input_file);
+		fatal_error("%s: cannot open", input_file);
 	static uint8_t module[ASAPInfo_MAX_MODULE_LENGTH];
 	int module_len = fread(module, 1, sizeof(module), fp);
 	fclose(fp);
