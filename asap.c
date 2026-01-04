@@ -67,7 +67,8 @@ typedef enum {
 	ASAPModuleType_RMT,
 	ASAPModuleType_TMC,
 	ASAPModuleType_TM2,
-	ASAPModuleType_FC
+	ASAPModuleType_FC,
+	ASAPModuleType_D15
 } ASAPModuleType;
 typedef struct DurationParser DurationParser;
 typedef struct ASAPNativeModuleWriter ASAPNativeModuleWriter;
@@ -366,6 +367,8 @@ static bool ASAPInfo_ValidateFc(uint8_t const *module, int moduleLen);
 
 static bool ASAPInfo_ParseFc(ASAPInfo *self, uint8_t const *module, int moduleLen);
 
+static bool ASAPInfo_ParseMptSamples(ASAPInfo *self, uint8_t const *content, int contentLen);
+
 static char *ASAPInfo_ParseText(uint8_t const *module, int i, int argEnd);
 
 static bool ASAPInfo_HasStringAt(uint8_t const *module, int moduleIndex, const char *s);
@@ -409,6 +412,8 @@ struct ASAP {
 	ASAPInfo moduleInfo;
 	int mptSamplesPage;
 	bool mptSamples15kHz;
+	int mptSamplesCurrentAddress;
+	bool mptSamplesSecondNibble;
 	int nextPlayerCycle;
 	int tmcPerFrameCounter;
 	int currentSong;
@@ -2488,6 +2493,20 @@ static void ASAP_Call6502Player(ASAP *self)
 		else
 			ASAP_Call6502(self, player + 6);
 		break;
+	case ASAPModuleType_D15:
+		if (self->cpu.cycle < 1254 || self->mptSamplesCurrentAddress >> 8 >= self->cpu.memory[ASAPInfo_GetMusicAddress(&self->moduleInfo) + 16 + self->currentSong])
+			break;
+		int b = self->cpu.memory[self->mptSamplesCurrentAddress];
+		if (self->mptSamplesSecondNibble) {
+			self->mptSamplesCurrentAddress++;
+			self->mptSamplesSecondNibble = false;
+		}
+		else {
+			b >>= 4;
+			self->mptSamplesSecondNibble = true;
+		}
+		PokeyPair_Poke(&self->pokeys, 53761, b | 240, self->cpu.cycle);
+		break;
 	}
 }
 
@@ -2586,6 +2605,10 @@ bool ASAP_LoadWithExtraFiles(ASAP *self, const char *filename, uint8_t const *mo
 		memcpy(self->cpu.memory + player, playerRoutine + 6, playerLastByte + 1 - player);
 		if (self->moduleInfo.player < 0)
 			self->moduleInfo.player = player;
+		return true;
+	}
+	if (self->moduleInfo.type == ASAPModuleType_D15) {
+		memcpy(self->cpu.memory + ASAPInfo_GetMusicAddress(&self->moduleInfo), module, moduleLen);
 		return true;
 	}
 	memset(self->cpu.memory, 0, sizeof(self->cpu.memory));
@@ -2711,6 +2734,12 @@ static bool ASAP_RestartSong(ASAP *self)
 	case ASAPModuleType_FC:
 		if (!ASAP_Do6502Init(self, player, self->currentSong, 0, 0))
 			return false;
+		break;
+	case ASAPModuleType_D15:
+		self->mptSamplesCurrentAddress = self->cpu.memory[ASAPInfo_GetMusicAddress(&self->moduleInfo) + self->currentSong] << 8;
+		self->mptSamplesSecondNibble = false;
+		self->cpu.memory[53760] = 210;
+		self->cpu.pc = 53760;
 		break;
 	}
 	ASAP_MutePokeyChannels(self, 0);
@@ -3921,6 +3950,37 @@ static bool ASAPInfo_ParseFc(ASAPInfo *self, uint8_t const *module, int moduleLe
 	return true;
 }
 
+static bool ASAPInfo_ParseMptSamples(ASAPInfo *self, uint8_t const *content, int contentLen)
+{
+	if (contentLen < 288)
+		return false;
+	self->originalType = self->type = ASAPModuleType_D15;
+	self->songs = 0;
+	self->headerLen = -1;
+	int end = -1;
+	for (int i = 0; i < 16; i++) {
+		int start = content[i];
+		if (start == 0) {
+			for (; i < 16; i++) {
+				if (content[i] != 0 || content[16 + i] != 0)
+					return false;
+			}
+			break;
+		}
+		if (i > 0 && start != end)
+			return false;
+		end = content[16 + i];
+		if (end <= start)
+			return false;
+		int samples = (end - start) << 9;
+		ASAPInfo_AddSong(self, samples + samples / 301 * 11);
+	}
+	if (contentLen < ((end - content[0]) << 8) + 32)
+		return false;
+	self->music = (content[0] << 8) - 32;
+	return true;
+}
+
 static char *ASAPInfo_ParseText(uint8_t const *module, int i, int argEnd)
 {
 	int len = argEnd - i - 2;
@@ -4208,6 +4268,8 @@ static bool ASAPInfo_IsOurPackedExt(int ext)
 	case 3698036:
 	case 3304820:
 	case 2122598:
+	case 3486052:
+	case 2111588:
 		return true;
 	default:
 		return false;
@@ -4313,6 +4375,12 @@ bool ASAPInfo_Load(ASAPInfo *self, const char *filename, uint8_t const *module, 
 		return ASAPInfo_ParseTm2(self, module, moduleLen);
 	case 2122598:
 		return ASAPInfo_ParseFc(self, module, moduleLen);
+	case 3486052:
+		self->fastplay = 1;
+		return ASAPInfo_ParseMptSamples(self, module, moduleLen);
+	case 2111588:
+		self->fastplay = 2;
+		return ASAPInfo_ParseMptSamples(self, module, moduleLen);
 	default:
 		return false;
 	}
@@ -4600,6 +4668,10 @@ const char *ASAPInfo_GetExtDescription(const char *ext)
 		return "Theta Music Composer 2.x";
 	case 2122598:
 		return "Future Composer";
+	case 3486052:
+		return "Music ProTracker 15 kHz samples";
+	case 2111588:
+		return "Music ProTracker 8 kHz samples";
 	case 7890296:
 		return "Atari 8-bit executable";
 	default:
@@ -4634,6 +4706,8 @@ const char *ASAPInfo_GetOriginalModuleExt(const ASAPInfo *self)
 		return "tm2";
 	case ASAPModuleType_FC:
 		return "fc";
+	case ASAPModuleType_D15:
+		return self->fastplay == 1 ? "d15" : "d8";
 	default:
 		return NULL;
 	}
@@ -4821,6 +4895,9 @@ int ASAPWriter_GetSaveExts(const char **exts, const ASAPInfo *info)
 		break;
 	case ASAPModuleType_SAP_S:
 		exts[i++] = "sap";
+		break;
+	case ASAPModuleType_D15:
+		exts[i++] = ASAPInfo_GetOriginalModuleExt(info);
 		break;
 	default:
 		exts[i++] = ASAPInfo_GetOriginalModuleExt(info);
@@ -5590,6 +5667,8 @@ static bool ASAPWriter_WriteExecutable(ASAPWriter *self, bool toSap, const ASAPI
 		if (!ASAPWriter_WriteBytes(self, playerRoutine, 2, playerLastByte - player + 7))
 			return false;
 		break;
+	default:
+		return false;
 	}
 	return true;
 }
@@ -5741,6 +5820,7 @@ uint8_t const *ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, ui
 		}
 		break;
 	case ASAPModuleType_FC:
+	case ASAPModuleType_D15:
 		if (!ASAPWriter_WriteBytes(self, module, 0, moduleLen))
 			return NULL;
 		break;

@@ -1,7 +1,7 @@
 /*
  * wasap.c - Another Slight Atari Player for Win32 systems
  *
- * Copyright (C) 2005-2025  Piotr Fusik
+ * Copyright (C) 2005-2026  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -311,7 +311,7 @@ static void SelectAndLoadFile(void)
 		NULL,
 		0,
 		_T("All supported\0"
-		"*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.md1;*.md2;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc\0"
+		"*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.md1;*.md2;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc;*.d15;*.d8\0"
 #define ASAP_FILTER(description, masks) description " (" masks ")\0" masks "\0"
 		ASAP_FILTER("Slight Atari Player", "*.sap")
 		ASAP_FILTER("Chaos Music Composer", "*.cmc;*.cm3;*.cmr;*.cms;*.dmc")
@@ -321,6 +321,7 @@ static void SelectAndLoadFile(void)
 		ASAP_FILTER("Theta Music Composer 1.x", "*.tmc;*.tm8")
 		ASAP_FILTER("Theta Music Composer 2.x", "*.tm2")
 		ASAP_FILTER("Future Composer", "*.fc")
+		ASAP_FILTER("Music ProTracker samples", "*.d15;*.d8")
 		"\0"),
 		NULL,
 		0,

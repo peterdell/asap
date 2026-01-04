@@ -1,6 +1,6 @@
 // asapinfo.fu - module parser
 //
-// Copyright (C) 2010-2025  Piotr Fusik
+// Copyright (C) 2010-2026  Piotr Fusik
 //
 // This file is part of ASAP (Another Slight Atari Player),
 // see http://asap.sourceforge.net
@@ -36,7 +36,8 @@ enum ASAPModuleType
 	Rmt,
 	Tmc,
 	Tm2,
-	Fc
+	Fc,
+	D15
 #if EXPERIMENTAL_XEX
 	// actually it works, but without VBLKI it's practically useless
 	, Xex
@@ -1131,6 +1132,45 @@ public class ASAPInfo
 		}
 	}
 
+	// Pause samples every frame, emulating MPT player routine.
+	// This is just some approximation.
+	// Scanline rate in PAL is 15556 Hz.
+	// Pausing for 11 scanlines of every 312 scanlines makes
+	// the average sample rate of 15007 Hz, almost a round number.
+	internal const int MptSamplesVblkPauseScanlines = 11;
+
+	void ParseMptSamples!(byte[] content, int contentLen)
+		throws ASAPFormatException
+	{
+		if (contentLen < 32 + 256)
+			throw ASAPFormatException("File too short");
+		OriginalType = Type = ASAPModuleType.D15;
+		Songs = 0;
+		HeaderLen = -1;
+		// TODO: join with similar code in ASAPMptSamples?
+		int end = -1;
+		for (int i = 0; i < 16; i++) {
+			int start = content[i];
+			if (start == 0) {
+				for (; i < 16; i++) {
+					if (content[i] != 0 || content[16 + i] != 0)
+						throw ASAPFormatException("Invalid header");
+				}
+				break;
+			}
+			if (i > 0 && start != end)
+				throw ASAPFormatException("Invalid header");
+			end = content[16 + i];
+			if (end <= start)
+				throw ASAPFormatException("Invalid header");
+			int samples = end - start << 9;
+			AddSong(samples + samples / (312 - MptSamplesVblkPauseScanlines) * MptSamplesVblkPauseScanlines);
+		}
+		if (contentLen < (end - content[0] << 8) + 0x20)
+			throw ASAPFormatException("File too short");
+		Music = (content[0] << 8) - 0x20;
+	}
+
 #if !OPENCL
 	static string() ParseText(byte[] module, int i, int argEnd)
 	{
@@ -1435,6 +1475,8 @@ public class ASAPInfo
 		case PackExt("TM8"):
 		case PackExt("TM2"):
 		case PackExt("FC"):
+		case PackExt("D15"):
+		case PackExt("D8"):
 #if EXPERIMENTAL_XEX
 		case PackExt("XEX"):
 #endif
@@ -1580,6 +1622,14 @@ public class ASAPInfo
 			return;
 		case PackExt("FC"):
 			ParseFc(module, moduleLen);
+			return;
+		case PackExt("D15"):
+			Fastplay = 1;
+			ParseMptSamples(module, moduleLen);
+			return;
+		case PackExt("D8"):
+			Fastplay = 2;
+			ParseMptSamples(module, moduleLen);
 			return;
 #if EXPERIMENTAL_XEX
 		case PackExt("XEX"):
@@ -1914,6 +1964,8 @@ public class ASAPInfo
 		case PackExt("TM8"): return "Theta Music Composer 1.x";
 		case PackExt("TM2"): return "Theta Music Composer 2.x";
 		case PackExt("FC"): return "Future Composer";
+		case PackExt("D15"): return "Music ProTracker 15 kHz samples";
+		case PackExt("D8"): return "Music ProTracker 8 kHz samples";
 		case PackExt("XEX"): return "Atari 8-bit executable";
 		default: throw ASAPFormatException("Unknown extension");
 		}
@@ -1949,6 +2001,8 @@ public class ASAPInfo
 			return "tm2";
 		case ASAPModuleType.Fc:
 			return "fc";
+		case ASAPModuleType.D15:
+			return Fastplay == 1 ? "d15" : "d8";
 		default:
 			return null;
 		}

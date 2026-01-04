@@ -1,6 +1,6 @@
 // asap.fu - emulation engine
 //
-// Copyright (C) 2010-2025  Piotr Fusik
+// Copyright (C) 2010-2026  Piotr Fusik
 //
 // This file is part of ASAP (Another Slight Atari Player),
 // see http://asap.sourceforge.net
@@ -121,8 +121,10 @@ public class ASAP
 	PokeyPair() Pokeys;
 
 	ASAPInfo() ModuleInfo;
-	int MptSamplesPage;
-	bool MptSamples15kHz;
+	int MptSamplesPage; // MD1/MD2 only
+	bool MptSamples15kHz; // MD1/MD2 only
+	int MptSamplesCurrentAddress; // D15/D8 only
+	bool MptSamplesSecondNibble; // D15/D8 only
 	int NextPlayerCycle;
 	int TmcPerFrameCounter;
 	int CurrentSong;
@@ -325,6 +327,21 @@ public class ASAP
 			else
 				Call6502(player + 6);
 			break;
+		case ASAPModuleType.D15:
+			if (Cpu.Cycle < ASAPInfo.MptSamplesVblkPauseScanlines * 114 // pause samples every frame
+			 || MptSamplesCurrentAddress >> 8 >= Cpu.Memory[ModuleInfo.GetMusicAddress() + 0x10 + CurrentSong]) // sample finished?
+				break;
+			int b = Cpu.Memory[MptSamplesCurrentAddress];
+			if (MptSamplesSecondNibble) {
+				MptSamplesCurrentAddress++;
+				MptSamplesSecondNibble = false;
+			}
+			else {
+				b >>= 4;
+				MptSamplesSecondNibble = true;
+			}
+			Pokeys.Poke(0xd201, b | 0xf0, Cpu.Cycle);
+			break;
 #if EXPERIMENTAL_XEX
 		case ASAPModuleType.Xex:
 			break;
@@ -455,6 +472,10 @@ public class ASAP
 				ModuleInfo.Player = player;
 			return;
 		}
+		if (ModuleInfo.Type == ASAPModuleType.D15) {
+			module.CopyTo(0, Cpu.Memory, ModuleInfo.GetMusicAddress(), moduleLen);
+			return;
+		}
 #endif
 		Cpu.Memory.Fill(0);
 		int moduleIndex = ModuleInfo.HeaderLen + 2;
@@ -577,6 +598,14 @@ public class ASAP
 			break;
 		case ASAPModuleType.Fc:
 			Do6502Init(player, CurrentSong, 0, 0);
+			break;
+		case ASAPModuleType.D15:
+			MptSamplesCurrentAddress = Cpu.Memory[ModuleInfo.GetMusicAddress() + CurrentSong] << 8;
+			MptSamplesSecondNibble = false;
+			// make 6502 idle
+			const int escapeAddr = 0xd200;
+			Cpu.Memory[escapeAddr] = 0xd2;
+			Cpu.Pc = escapeAddr;
 			break;
 #if EXPERIMENTAL_XEX
 		case ASAPModuleType.Xex:

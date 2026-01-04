@@ -1,7 +1,7 @@
 /*
  * foo_asap.cpp - ASAP plugin for foobar2000
  *
- * Copyright (C) 2006-2025  Piotr Fusik
+ * Copyright (C) 2006-2026  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see https://asap.sourceforge.net
@@ -159,7 +159,7 @@ public:
 
 	static bool g_is_our_path(const char *p_path, const char *p_extension)
 	{
-		return ASAPInfo_IsOurFile(p_path) != 0;
+		return ASAPInfo_IsOurFile(p_path);
 	}
 
 	static GUID g_get_guid()
@@ -502,7 +502,8 @@ class input_file_type_asap : public service_impl_single_t<input_file_type>
 		{ "Raster Music Tracker", "*.RMT" },
 		{ "Theta Music Composer 1.x", "*.TMC;*.TM8" },
 		{ "Theta Music Composer 2.x", "*.TM2" },
-		{ "Future Composer", "*.FC" }
+		{ "Future Composer", "*.FC" },
+		{ "Music ProTracker samples", "*.D15;*.D8" }
 	};
 
 public:

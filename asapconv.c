@@ -1,7 +1,7 @@
 /*
  * asapconv.c - converter of ASAP-supported formats
  *
- * Copyright (C) 2005-2025  Piotr Fusik
+ * Copyright (C) 2005-2026  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -68,8 +68,9 @@ static void print_help(void)
 {
 	printf(
 		"Usage: asapconv [OPTIONS] INPUTFILE...\n"
-		"Each INPUTFILE must be in a supported format: SAP, CMC, CM3, CMR,\n"
-		"CMS, DMC, DLT, MPT, MD1, MD2, MPD, RMT, TMC, TM8, TM2 or FC.\n"
+		"Each INPUTFILE must be in a supported format:\n"
+		"SAP, CMC, CM3, CMR, CMS, DMC, DLT, MPT, MD1, MD2, MPD,\n"
+		"RMT, TMC, TM8, TM2, FC, D15 or D8.\n"
 		"Output EXT must be one of the above or XEX, " SAMPLE_FORMATS ".\n"
 		"Options:\n"
 		"-o FILE.EXT --output=FILE.EXT  Write to the specified file\n"

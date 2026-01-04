@@ -1,6 +1,6 @@
 // asapwriter.fu - format conversions
 //
-// Copyright (C) 2011-2025  Piotr Fusik
+// Copyright (C) 2011-2026  Piotr Fusik
 //
 // This file is part of ASAP (Another Slight Atari Player),
 // see http://asap.sourceforge.net
@@ -189,6 +189,9 @@ public class ASAPWriter
 			break;
 		case ASAPModuleType.SapS:
 			exts[i++] = "sap";
+			break;
+		case ASAPModuleType.D15:
+			exts[i++] = info.GetOriginalModuleExt();
 			break;
 		default:
 			exts[i++] = info.GetOriginalModuleExt();
@@ -691,6 +694,8 @@ public class ASAPWriter
 			WriteBytes(module, 0, moduleLen);
 			WriteBytes(playerRoutine, 2, playerLastByte - player + 7);
 			break;
+		default:
+			throw ASAPConversionException("Unknown format");
 		}
 	}
 
@@ -867,7 +872,8 @@ public class ASAPWriter
 				nativeWriter.Write(info, info.OriginalType, blockLen); // SAP -> native
 			break;
 		case ASAPModuleType.Fc:
-			// FC -> FC
+		case ASAPModuleType.D15: // TODO: relocate
+			// FC -> FC, D15 -> D15
 			WriteBytes(module, 0, moduleLen);
 			break;
 		default:
