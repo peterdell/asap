@@ -1,24 +1,16 @@
 # MinGW for most ports
-WIN32_CC = $(DO)i686-w64-mingw32-gcc $(WIN32_CARGS) $(filter-out %.h,$^)
-WIN32_CXX = $(DO)i686-w64-mingw32-g++ $(WIN32_CARGS) -std=c++20 $(filter-out %.h %.hpp,$^)
-WIN32_WINDRES = $(DO)i686-w64-mingw32-windres -o $@ $<
+WIN_CC = $(DO)$(if $(findstring x64,$(@D)),x86_64,i686)-w64-mingw32-gcc $(WIN_CARGS) $(filter-out %.h,$^)
+WIN_CXX = $(DO)$(if $(findstring x64,$(@D)),x86_64,i686)-w64-mingw32-g++ $(WIN_CARGS) -std=c++20 $(filter-out %.h %.hpp,$^)
+WIN_WINDRES = $(DO)$(if $(findstring x64,$(@D)),x86_64,i686)-w64-mingw32-windres -o $@ $<
 VLC_INCLUDE = ../vlc/include
 VLC_LIB32 = "C:/Program Files (x86)/VideoLAN/VLC"
 VLC_LIB64 = "C:/Program Files/VideoLAN/VLC"
 
 # Microsoft compiler for foobar2000
 FOOBAR2000_SDK_DIR = ../foobar2000_SDK
-WIN32_CL = $(WIN32_CLDO)win32/foobar2000/msvc32.bat cl -std:c++20 -GR- -GS- -wd4996 -DNDEBUG $(WIN32_CLARGS) $(filter-out %.h,$^)
-WIN32_LINKOPT = -link -release -noexp -noimplib
-WIN32_MKLIB = $(DO)win32/foobar2000/msvc32.bat lib -nologo -ltcg -out:$@ $^
-WIN64_CL = $(WIN32_CLDO)win32/foobar2000/msvc64.bat cl -std:c++20 -GR- -GS- -wd4996 -DNDEBUG $(WIN32_CLARGS) $(filter-out %.h,$^)
-WIN64_LINKOPT = $(WIN32_LINKOPT)
-WIN64_MKLIB = $(DO)win32/foobar2000/msvc64.bat lib -nologo -ltcg -out:$@ $^
-
-# MinGW x64
-WIN64_CC = $(DO)x86_64-w64-mingw32-gcc $(WIN32_CARGS) $(filter-out %.h,$^)
-WIN64_CXX = $(DO)x86_64-w64-mingw32-g++ $(WIN32_CARGS) -std=c++20 $(filter-out %.h %.hpp,$^)
-WIN64_WINDRES = $(DO)x86_64-w64-mingw32-windres -o $@ $<
+WIN_CL = $(DO)$(if $(filter-out %.obj,$@),mkdir -p win32/obj/$@ && )win32/foobar2000/msvc$(if $(findstring x64,$(@D)),64,32).bat cl -std:c++20 -GR- -GS- -wd4996 -DNDEBUG -nologo -O2 -GL -W3 $(if $(filter %.obj,$@),-c -Fo$@,-Fe$@ -Fowin32/obj/$@/) $(if $(filter %.dll,$@),-LD) $(INCLUDEOPTS) $(filter-out %.h,$^)
+WIN_LINKOPT = -link -release -noexp -noimplib
+WIN_MKLIB = $(DO)win32/foobar2000/msvc$(if $(findstring x64,$(@D)),64,32).bat lib -nologo -ltcg -out:$@ $^
 
 # Windows Installer XML
 WIX = $(DO)wix
@@ -33,9 +25,7 @@ $(error Use "Makefile" instead of "win32.mk")
 endif
 
 comma = ,
-WIN32_CARGS = -O2 -Wall -Wl,--nxcompat -o $@ $(if $(filter %.dll,$@),-shared -Wl$(comma)-subsystem$(comma)windows) $(INCLUDEOPTS) -static -s
-WIN32_CLDO = $(DO)$(if $(filter-out %.obj,$@),mkdir -p win32/obj/$@ && )
-WIN32_CLARGS = -nologo -O2 -GL -W3 $(if $(filter %.obj,$@),-c -Fo$@,-Fe$@ -Fowin32/obj/$@/) $(if $(filter %.dll,$@),-LD) $(INCLUDEOPTS)
+WIN_CARGS = -O2 -Wall -Wl,--nxcompat -o $@ $(if $(filter %.dll,$@),-shared -Wl$(comma)-subsystem$(comma)windows) $(INCLUDEOPTS) -static -s
 
 mingw: $(addprefix win32/,asapconv.exe libasap.a asapscan.exe wasap.exe bass_asap.dll in_asap.dll xmp-asap.dll apokeysnd.dll ASAPShellEx.dll)
 .PHONY: mingw
@@ -43,24 +33,20 @@ mingw: $(addprefix win32/,asapconv.exe libasap.a asapscan.exe wasap.exe bass_asa
 # asapconv
 
 win32/asapconv.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
-	$(WIN32_CC) -DHAVE_LIBMP3LAME -DHAVE_LIBMP3LAME_DLL
+	$(WIN_CC) -DHAVE_LIBMP3LAME -DHAVE_LIBMP3LAME_DLL
 CLEAN += win32/asapconv.exe
 
 win32/asapconv-static-lame.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
-	$(WIN32_CC) -DHAVE_LIBMP3LAME -lmp3lame
+	$(WIN_CC) -DHAVE_LIBMP3LAME -lmp3lame
 CLEAN += win32/asapconv-static-lame.exe
 
-win32/asapconv-no-lame.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
-	$(WIN32_CC)
-CLEAN += win32/asapconv-no-lame.exe
+win32/asapconv-no-lame.exe win32/x64/asapconv-no-lame.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
+	$(WIN_CC)
+CLEAN += win32/asapconv-no-lame.exe win32/x64/asapconv-no-lame.exe
 
 win32/msvc/asapconv.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
-	$(WIN32_CL) -DHAVE_LIBMP3LAME -DHAVE_LIBMP3LAME_DLL
+	$(WIN_CL) -DHAVE_LIBMP3LAME -DHAVE_LIBMP3LAME_DLL
 CLEAN += win32/msvc/asapconv.exe
-
-win32/x64/asapconv.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
-	$(WIN64_CC)
-CLEAN += win32/x64/asapconv.exe
 
 # lib
 
@@ -68,93 +54,77 @@ win32/libasap.a: win32/asap.o
 	$(DO_AR)
 CLEAN += win32/libasap.a
 
-win32/asap.o: $(call src,asap.[ch])
-	$(WIN32_CC) -c
-CLEAN += win32/asap.o
+win32/asap.o win32/x64/asap.o: $(call src,asap.[ch])
+	$(WIN_CC) -c
+CLEAN += win32/asap.o win32/x64/asap.o
 
 win32/asap.lib: win32/asap.obj
-	$(WIN32_MKLIB)
+	$(WIN_MKLIB)
 CLEAN += win32/asap.lib
 
 win32/asap.obj: $(call src,asap.[ch])
-	$(WIN32_CL)
+	$(WIN_CL)
 CLEAN += win32/asap.obj
-
-win32/x64/asap.o: $(call src,asap.[ch])
-	$(WIN64_CC) -c
-CLEAN += win32/x64/asap.o
 
 # SDL
 
 win32/asap-sdl.exe: $(call src,asap-sdl.c asap.[ch])
-	$(WIN32_CC) -lmingw32 -lSDLmain -lSDL
+	$(WIN_CC) -lmingw32 -lSDLmain -lSDL
 CLEAN += win32/asap-sdl.exe
 
 # asapscan
 
 win32/asapscan.exe: $(call src,asapscan.c asap-stdio.[ch] asap-asapscan.h)
-	$(WIN32_CC)
+	$(WIN_CC)
 CLEAN += win32/asapscan.exe
 
 # sap2txt
 
 win32/sap2txt.exe: $(srcdir)sap2txt.c
-	$(WIN32_CC) -static -lz
+	$(WIN_CC) -static -lz
 CLEAN += win32/sap2txt.exe
 
 # WASAP
 
 win32/wasap.exe: $(call src,win32/wasap/wasap.[ch] asap.[ch] astil.[ch] win32/info_dlg.[ch]) win32/wasap/wasap-res.o
-	$(WIN32_CC) -Wl,-subsystem,windows -DWASAP -lcomctl32 -lcomdlg32 -lwinmm
+	$(WIN_CC) -Wl,-subsystem,windows -DWASAP -lcomctl32 -lcomdlg32 -lwinmm
 CLEAN += win32/wasap.exe
 
-win32/wasap/wasap-res.o: $(call src,win32/gui.rc asap.h win32/info_dlg.h win32/wasap/wasap.h win32/wasap/wasap.ico win32/wasap/play.ico win32/wasap/stop.ico)
-	$(WIN32_WINDRES) -DWASAP
-CLEAN += win32/wasap/wasap-res.o
-
 win32/x64/wasap.exe: $(call src,win32/wasap/wasap.[ch] asap.[ch] astil.[ch] win32/info_dlg.[ch]) win32/x64/wasap-res.o
-	$(WIN64_CC) -Wl,-subsystem,windows -DWASAP -lcomctl32 -lcomdlg32 -lwinmm
+	$(WIN_CC) -Wl,-subsystem,windows -DWASAP -lcomctl32 -lcomdlg32 -lwinmm
 CLEAN += win32/x64/wasap.exe
 
-win32/x64/wasap-res.o: $(call src,win32/gui.rc asap.h win32/info_dlg.h win32/wasap/wasap.h win32/wasap/wasap.ico win32/wasap/play.ico win32/wasap/stop.ico)
-	$(WIN64_WINDRES) -DWASAP
-CLEAN += win32/x64/wasap-res.o
+win32/wasap/wasap-res.o win32/x64/wasap-res.o: $(call src,win32/gui.rc asap.h win32/info_dlg.h win32/wasap/wasap.h win32/wasap/wasap.ico win32/wasap/play.ico win32/wasap/stop.ico)
+	$(WIN_WINDRES) -DWASAP
+CLEAN += win32/wasap/wasap-res.o win32/x64/wasap-res.o
 
 # VLC
 
 win32/libasap_plugin.dll: $(call src,vlc/libasap_plugin.c asap.[ch]) win32/libasap_plugin-res.o
-	$(WIN32_CC:-static=-static-libgcc) -I$(VLC_INCLUDE) -L$(VLC_LIB32) -lvlccore
+	$(WIN_CC:-static=-static-libgcc) -I$(VLC_INCLUDE) -L$(VLC_LIB32) -lvlccore
 CLEAN += win32/libasap_plugin.dll
 
-win32/libasap_plugin-res.o: $(call src,win32/gui.rc asap.h)
-	$(WIN32_WINDRES) -DVLC
-CLEAN += win32/libasap_plugin-res.o
-
 win32/x64/libasap_plugin.dll: $(call src,vlc/libasap_plugin.c asap.[ch]) win32/x64/libasap_plugin-res.o
-	$(WIN64_CC:-static=-static-libgcc) -I$(VLC_INCLUDE) -L$(VLC_LIB64) -lvlccore
+	$(WIN_CC:-static=-static-libgcc) -I$(VLC_INCLUDE) -L$(VLC_LIB64) -lvlccore
 CLEAN += win32/x64/libasap_plugin.dll
 
-win32/x64/libasap_plugin-res.o: $(call src,win32/gui.rc asap.h)
-	$(WIN64_WINDRES) -DVLC
-CLEAN += win32/x64/libasap_plugin-res.o
+win32/libasap_plugin-res.o win32/x64/libasap_plugin-res.o: $(call src,win32/gui.rc asap.h)
+	$(WIN_WINDRES) -DVLC
+CLEAN += win32/libasap_plugin-res.o win32/x64/libasap_plugin-res.o
 
 # BASS
 
 win32/bass_asap.dll: $(call src,win32/bass/bass_asap.c asap.[ch] win32/bass/bass-addon.h win32/bass/bass.h win32/bass/bass.lib) win32/bass/bass_asap-res.o
-	$(WIN32_CC) -Wl,--kill-at -DBASS
+	$(WIN_CC) -Wl,--kill-at -DBASS
 CLEAN += win32/bass_asap.dll
 
-win32/bass/bass_asap-res.o: $(call src,win32/gui.rc asap.h)
-	$(WIN32_WINDRES) -DBASS
-CLEAN += win32/bass/bass_asap-res.o
-
 win32/x64/bass_asap.dll: $(call src,win32/bass/bass_asap.c asap.[ch] win32/bass/bass-addon.h win32/bass/bass.h win32/bass/x64/bass.lib) win32/bass/x64/bass_asap-res.o
-	$(WIN64_CC) -DBASS
+	$(WIN_CC) -DBASS
 CLEAN += win32/x64/bass_asap.dll
 
-win32/bass/x64/bass_asap-res.o: $(call src,win32/gui.rc asap.h)
-	$(WIN64_WINDRES) -DBASS
-CLEAN += win32/bass/x64/bass_asap-res.o
+win32/bass/bass_asap-res.o win32/bass/x64/bass_asap-res.o: $(call src,win32/gui.rc asap.h)
+	$(WIN_WINDRES) -DBASS
+CLEAN += win32/bass/bass_asap-res.o win32/bass/x64/bass_asap-res.o
 
 # foobar2000
 
@@ -166,77 +136,74 @@ FOOBAR2000_PFC_FILES = audio_math audio_sample bit_array bsearch cpuid filehandl
 	sort splitString2 string-compare string-lite string_base string_conv string-conv-lite threads timers unicode-normalize utf8 win-objects
 
 win32/foo_asap.dll: $(FOOBAR2000_SRC) win32/foobar2000/foobar2000_SDK.lib win32/foobar2000/pfc.lib $(FOOBAR2000_SDK_DIR)/foobar2000/shared/shared-Win32.lib
-	$(WIN32_CL) -DFOOBAR2000 -DWIN32 -EHsc -I$(FOOBAR2000_SDK_DIR) comctl32.lib comdlg32.lib ole32.lib shell32.lib shlwapi.lib user32.lib $(WIN32_LINKOPT)
+	$(WIN_CL) -DFOOBAR2000 -DWIN32 -EHsc -I$(FOOBAR2000_SDK_DIR) comctl32.lib comdlg32.lib ole32.lib shell32.lib shlwapi.lib user32.lib $(WIN_LINKOPT)
 CLEAN += win32/foo_asap.dll
 
 win32/x64/foo_asap.dll: $(FOOBAR2000_SRC) win32/foobar2000/x64/foobar2000_SDK.lib win32/foobar2000/x64/pfc.lib $(FOOBAR2000_SDK_DIR)/foobar2000/shared/shared-x64.lib
-	$(WIN64_CL) -DFOOBAR2000 -DWIN32 -EHsc -I$(FOOBAR2000_SDK_DIR) comctl32.lib comdlg32.lib ole32.lib shell32.lib shlwapi.lib user32.lib $(WIN32_LINKOPT)
+	$(WIN_CL) -DFOOBAR2000 -DWIN32 -EHsc -I$(FOOBAR2000_SDK_DIR) comctl32.lib comdlg32.lib ole32.lib shell32.lib shlwapi.lib user32.lib $(WIN_LINKOPT)
 CLEAN += win32/x64/foo_asap.dll
 
 win32/foobar2000/foobar2000_SDK.lib: $(FOOBAR2000_SDK_FILES:%=win32/foobar2000/%.obj)
-	$(WIN32_MKLIB)
+	$(WIN_MKLIB)
 CLEAN += win32/foobar2000/foobar2000_SDK.lib
 
 win32/foobar2000/x64/foobar2000_SDK.lib: $(FOOBAR2000_SDK_FILES:%=win32/foobar2000/x64/%.obj)
-	$(WIN64_MKLIB)
+	$(WIN_MKLIB)
 CLEAN += win32/foobar2000/x64/foobar2000_SDK.lib
 
-win32/foobar2000/component_client.obj: $(FOOBAR2000_SDK_DIR)/foobar2000/foobar2000_component_client/component_client.cpp
-	$(WIN32_CL) -DWIN32 -DUNICODE -EHsc -I$(FOOBAR2000_SDK_DIR)/foobar2000 -I$(FOOBAR2000_SDK_DIR)
-
-win32/foobar2000/x64/component_client.obj: $(FOOBAR2000_SDK_DIR)/foobar2000/foobar2000_component_client/component_client.cpp
-	$(WIN64_CL) -DWIN32 -DUNICODE -EHsc -I$(FOOBAR2000_SDK_DIR)/foobar2000 -I$(FOOBAR2000_SDK_DIR)
+win32/foobar2000/component_client.obj win32/foobar2000/x64/component_client.obj: $(FOOBAR2000_SDK_DIR)/foobar2000/foobar2000_component_client/component_client.cpp
+	$(WIN_CL) -DWIN32 -DUNICODE -EHsc -I$(FOOBAR2000_SDK_DIR)/foobar2000 -I$(FOOBAR2000_SDK_DIR)
 
 win32/foobar2000/%.obj: $(FOOBAR2000_SDK_DIR)/foobar2000/SDK/%.cpp
-	$(WIN32_CL) -DWIN32 -DUNICODE -EHsc -D_WIN32_IE=0x550 -I$(FOOBAR2000_SDK_DIR)
+	$(WIN_CL) -DWIN32 -DUNICODE -EHsc -D_WIN32_IE=0x550 -I$(FOOBAR2000_SDK_DIR)
 CLEAN += win32/foobar2000/*.obj
 
 win32/foobar2000/x64/%.obj: $(FOOBAR2000_SDK_DIR)/foobar2000/SDK/%.cpp
-	$(WIN64_CL) -DWIN32 -DUNICODE -EHsc -D_WIN32_IE=0x550 -I$(FOOBAR2000_SDK_DIR)
+	$(WIN_CL) -DWIN32 -DUNICODE -EHsc -D_WIN32_IE=0x550 -I$(FOOBAR2000_SDK_DIR)
 CLEAN += win32/foobar2000/x64/*.obj
 
 win32/foobar2000/pfc.lib: $(FOOBAR2000_PFC_FILES:%=win32/foobar2000/%.obj)
-	$(WIN32_MKLIB)
+	$(WIN_MKLIB)
 CLEAN += win32/foobar2000/pfc.lib
 
 win32/foobar2000/x64/pfc.lib: $(FOOBAR2000_PFC_FILES:%=win32/foobar2000/x64/%.obj)
-	$(WIN64_MKLIB)
+	$(WIN_MKLIB)
 CLEAN += win32/foobar2000/x64/pfc.lib
 
 win32/foobar2000/%.obj: $(FOOBAR2000_SDK_DIR)/pfc/%.cpp
-	$(WIN32_CL) -DWIN32 -DUNICODE -D_UNICODE -EHsc
+	$(WIN_CL) -DWIN32 -DUNICODE -D_UNICODE -EHsc
 
 win32/foobar2000/x64/%.obj: $(FOOBAR2000_SDK_DIR)/pfc/%.cpp
-	$(WIN64_CL) -DWIN32 -DUNICODE -D_UNICODE -EHsc
+	$(WIN_CL) -DWIN32 -DUNICODE -D_UNICODE -EHsc
 
 win32/foobar2000/foo_asap.res: $(call src,win32/gui.rc asap.h win32/settings_dlg.h)
-	$(WIN32_WINDRES) -DFOOBAR2000
+	$(WIN_WINDRES) -DFOOBAR2000
 CLEAN += win32/foobar2000/foo_asap.res
 
 # Winamp
 
 win32/in_asap.dll: $(call src,win32/winamp/in_asap.c asap.[ch] astil.[ch] aatr-stdio.[ch] aatr.h win32/info_dlg.[ch] win32/settings_dlg.[ch] win32/winamp/in2.h win32/winamp/out.h win32/winamp/ipc_pe.h win32/winamp/wa_ipc.h) win32/winamp/in_asap-res.o
-	$(WIN32_CC) -DWINAMP -lcomctl32 -lcomdlg32
+	$(WIN_CC) -DWINAMP -lcomctl32 -lcomdlg32
 CLEAN += win32/in_asap.dll
 
 win32/winamp/in_asap-res.o: $(call src,win32/gui.rc asap.h win32/info_dlg.h win32/settings_dlg.h)
-	$(WIN32_WINDRES) -DWINAMP
+	$(WIN_WINDRES) -DWINAMP
 CLEAN += win32/winamp/in_asap-res.o
 
 # XMPlay
 
 win32/xmp-asap.dll: $(call src,win32/xmplay/xmp-asap.c asap.[ch] astil.[ch] win32/info_dlg.[ch] win32/settings_dlg.[ch] win32/xmplay/xmpin.h win32/xmplay/xmpfunc.h) win32/xmplay/xmp-asap-res.o
-	$(WIN32_CC) -Wl,--kill-at -DXMPLAY -lcomctl32 -lcomdlg32
+	$(WIN_CC) -Wl,--kill-at -DXMPLAY -lcomctl32 -lcomdlg32
 CLEAN += win32/xmp-asap.dll
 
 win32/xmplay/xmp-asap-res.o: $(call src,win32/gui.rc asap.h win32/info_dlg.h win32/settings_dlg.h)
-	$(WIN32_WINDRES) -DXMPLAY
+	$(WIN_WINDRES) -DXMPLAY
 CLEAN += win32/xmplay/xmp-asap-res.o
 
 # Raster Music Tracker
 
 win32/apokeysnd.dll: $(call src,win32/rmt/apokeysnd_dll.c) win32/rmt/pokey.c win32/rmt/pokey.h win32/rmt/apokeysnd-res.o
-	$(WIN32_CC) --std=c99 -DAPOKEYSND
+	$(WIN_CC) --std=c99 -DAPOKEYSND
 CLEAN += win32/apokeysnd.dll
 
 win32/rmt/pokey.h: $(srcdir)pokey.fu | win32/rmt/pokey.c
@@ -246,26 +213,22 @@ win32/rmt/pokey.c: $(srcdir)pokey.fu
 CLEAN += win32/rmt/pokey.c win32/rmt/pokey.h
 
 win32/rmt/apokeysnd-res.o: $(call src,win32/gui.rc asap.h)
-	$(WIN32_WINDRES) -DAPOKEYSND
+	$(WIN_WINDRES) -DAPOKEYSND
 CLEAN += win32/rmt/apokeysnd-res.o
 
 # ASAPShellEx
 
 win32/ASAPShellEx.dll: $(call src,win32/shellex/ASAPShellEx.cpp asap.h) win32/asap.o win32/shellex/ASAPShellEx-res.o
-	$(WIN32_CXX) -Wl,--kill-at -lole32 -loleaut32 -lshlwapi -luuid
+	$(WIN_CXX) -Wl,--kill-at -lole32 -loleaut32 -lshlwapi -luuid
 CLEAN += win32/ASAPShellEx.dll
 
-win32/shellex/ASAPShellEx-res.o: $(call src,win32/gui.rc asap.h)
-	$(WIN32_WINDRES) -DSHELLEX
-CLEAN += win32/shellex/ASAPShellEx-res.o
-
 win32/x64/ASAPShellEx.dll: $(call src,win32/shellex/ASAPShellEx.cpp asap.h) win32/x64/asap.o win32/x64/ASAPShellEx-res.o
-	$(WIN64_CXX) -Wl,--kill-at -lole32 -loleaut32 -lshlwapi -luuid
+	$(WIN_CXX) -Wl,--kill-at -lole32 -loleaut32 -lshlwapi -luuid
 CLEAN += win32/x64/ASAPShellEx.dll
 
-win32/x64/ASAPShellEx-res.o: $(call src,win32/gui.rc asap.h)
-	$(WIN64_WINDRES) -DSHELLEX
-CLEAN += win32/x64/ASAPShellEx-res.o
+win32/shellex/ASAPShellEx-res.o win32/x64/ASAPShellEx-res.o: $(call src,win32/gui.rc asap.h)
+	$(WIN_WINDRES) -DSHELLEX
+CLEAN += win32/shellex/ASAPShellEx-res.o win32/x64/ASAPShellEx-res.o
 
 # setups
 
