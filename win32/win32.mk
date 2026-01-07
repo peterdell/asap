@@ -8,9 +8,6 @@ VLC_LIB64 = "C:/Program Files/VideoLAN/VLC"
 
 # Microsoft compiler for foobar2000
 FOOBAR2000_SDK_DIR = ../foobar2000_SDK
-WIN_CL = $(DO)$(if $(filter-out %.obj,$@),mkdir -p win32/obj/$@ && )win32/foobar2000/msvc$(if $(findstring x64,$(@D)),64,32).bat cl -std:c++20 -GR- -GS- -wd4996 -DNDEBUG -nologo -O2 -GL -W3 $(if $(filter %.obj,$@),-c -Fo$@,-Fe$@ -Fowin32/obj/$@/) $(if $(filter %.dll,$@),-LD) $(INCLUDEOPTS) $(filter-out %.h,$^)
-WIN_LINKOPT = -link -release -noexp -noimplib
-WIN_MKLIB = $(DO)win32/foobar2000/msvc$(if $(findstring x64,$(@D)),64,32).bat lib -nologo -ltcg -out:$@ $^
 
 # Windows Installer XML
 WIX = $(DO)wix
@@ -26,6 +23,8 @@ endif
 
 comma = ,
 WIN_CARGS = -O2 -Wall -Wl,--nxcompat -o $@ $(if $(filter %.dll,$@),-shared -Wl$(comma)-subsystem$(comma)windows) $(INCLUDEOPTS) -static -s
+WIN_CL = $(DO)$(if $(filter-out %.obj,$@),mkdir -p win32/obj/$@ && )win32/foobar2000/msvc$(if $(findstring x64,$(@D)),64,32).bat \
+	cl -std:c++20 -GR- -GS- -wd4996 -DNDEBUG -nologo -O2 -GL -W3 $(if $(filter %.obj,$@),-c -Fo$@,-Fe$@ -Fowin32/obj/$@/) $(if $(filter %.dll,$@),-LD) $(INCLUDEOPTS) $(filter-out %.h,$^)
 
 mingw: $(addprefix win32/,asapconv.exe libasap.a asapscan.exe wasap.exe bass_asap.dll in_asap.dll xmp-asap.dll apokeysnd.dll ASAPShellEx.dll)
 .PHONY: mingw
@@ -57,14 +56,6 @@ CLEAN += win32/libasap.a
 win32/asap.o win32/x64/asap.o: $(call src,asap.[ch])
 	$(WIN_CC) -c
 CLEAN += win32/asap.o win32/x64/asap.o
-
-win32/asap.lib: win32/asap.obj
-	$(WIN_MKLIB)
-CLEAN += win32/asap.lib
-
-win32/asap.obj: $(call src,asap.[ch])
-	$(WIN_CL)
-CLEAN += win32/asap.obj
 
 # SDL
 
@@ -128,53 +119,17 @@ CLEAN += win32/bass/bass_asap-res.o win32/bass/x64/bass_asap-res.o
 
 # foobar2000
 
-FOOBAR2000_SRC = $(call src,win32/foobar2000/foo_asap.cpp asap.[ch] astil.[ch] aatr-stdio.[ch] aatr.h win32/info_dlg.[ch] win32/settings_dlg.[ch]) win32/foobar2000/foo_asap.res
-FOOBAR2000_SDK_FILES = component_client abort_callback album_art app_close_blocker audio_chunk audio_chunk_channel_config \
-	cfg_var cfg_var_legacy commonObjects completion_notify configStore console file_info file_info_impl file_info_merge filesystem filesystem_helper foosort \
-	fsItem guids input input_file_type main_thread_callback metadb_handle metadb_handle_list playable_location playlist preferences_page replaygain_info service titleformat utility
-FOOBAR2000_PFC_FILES = audio_math audio_sample bit_array bsearch cpuid filehandle guid other pathUtils \
-	sort splitString2 string-compare string-lite string_base string_conv string-conv-lite threads timers unicode-normalize utf8 win-objects
-
-win32/foo_asap.dll: $(FOOBAR2000_SRC) win32/foobar2000/foobar2000_SDK.lib win32/foobar2000/pfc.lib $(FOOBAR2000_SDK_DIR)/foobar2000/shared/shared-Win32.lib
-	$(WIN_CL) -DFOOBAR2000 -DWIN32 -EHsc -I$(FOOBAR2000_SDK_DIR) comctl32.lib comdlg32.lib ole32.lib shell32.lib shlwapi.lib user32.lib $(WIN_LINKOPT)
-CLEAN += win32/foo_asap.dll
-
-win32/x64/foo_asap.dll: $(FOOBAR2000_SRC) win32/foobar2000/x64/foobar2000_SDK.lib win32/foobar2000/x64/pfc.lib $(FOOBAR2000_SDK_DIR)/foobar2000/shared/shared-x64.lib
-	$(WIN_CL) -DFOOBAR2000 -DWIN32 -EHsc -I$(FOOBAR2000_SDK_DIR) comctl32.lib comdlg32.lib ole32.lib shell32.lib shlwapi.lib user32.lib $(WIN_LINKOPT)
-CLEAN += win32/x64/foo_asap.dll
-
-win32/foobar2000/foobar2000_SDK.lib: $(FOOBAR2000_SDK_FILES:%=win32/foobar2000/%.obj)
-	$(WIN_MKLIB)
-CLEAN += win32/foobar2000/foobar2000_SDK.lib
-
-win32/foobar2000/x64/foobar2000_SDK.lib: $(FOOBAR2000_SDK_FILES:%=win32/foobar2000/x64/%.obj)
-	$(WIN_MKLIB)
-CLEAN += win32/foobar2000/x64/foobar2000_SDK.lib
-
-win32/foobar2000/component_client.obj win32/foobar2000/x64/component_client.obj: $(FOOBAR2000_SDK_DIR)/foobar2000/foobar2000_component_client/component_client.cpp
-	$(WIN_CL) -DWIN32 -DUNICODE -EHsc -I$(FOOBAR2000_SDK_DIR)/foobar2000 -I$(FOOBAR2000_SDK_DIR)
-
-win32/foobar2000/%.obj: $(FOOBAR2000_SDK_DIR)/foobar2000/SDK/%.cpp
-	$(WIN_CL) -DWIN32 -DUNICODE -EHsc -D_WIN32_IE=0x550 -I$(FOOBAR2000_SDK_DIR)
-CLEAN += win32/foobar2000/*.obj
-
-win32/foobar2000/x64/%.obj: $(FOOBAR2000_SDK_DIR)/foobar2000/SDK/%.cpp
-	$(WIN_CL) -DWIN32 -DUNICODE -EHsc -D_WIN32_IE=0x550 -I$(FOOBAR2000_SDK_DIR)
-CLEAN += win32/foobar2000/x64/*.obj
-
-win32/foobar2000/pfc.lib: $(FOOBAR2000_PFC_FILES:%=win32/foobar2000/%.obj)
-	$(WIN_MKLIB)
-CLEAN += win32/foobar2000/pfc.lib
-
-win32/foobar2000/x64/pfc.lib: $(FOOBAR2000_PFC_FILES:%=win32/foobar2000/x64/%.obj)
-	$(WIN_MKLIB)
-CLEAN += win32/foobar2000/x64/pfc.lib
-
-win32/foobar2000/%.obj: $(FOOBAR2000_SDK_DIR)/pfc/%.cpp
-	$(WIN_CL) -DWIN32 -DUNICODE -D_UNICODE -EHsc
-
-win32/foobar2000/x64/%.obj: $(FOOBAR2000_SDK_DIR)/pfc/%.cpp
-	$(WIN_CL) -DWIN32 -DUNICODE -D_UNICODE -EHsc
+win32/foo_asap.dll win32/x64/foo_asap.dll: $(call src,win32/foobar2000/foo_asap.cpp asap.[ch] astil.[ch] aatr-stdio.[ch] aatr.h win32/info_dlg.[ch] win32/settings_dlg.[ch]) win32/foobar2000/foo_asap.res \
+	$(FOOBAR2000_SDK_DIR)/foobar2000/foobar2000_component_client/component_client.cpp \
+	$(patsubst %, $(FOOBAR2000_SDK_DIR)/foobar2000/SDK/%.cpp, abort_callback album_art app_close_blocker audio_chunk audio_chunk_channel_config \
+		cfg_var cfg_var_legacy commonObjects completion_notify configStore console file_info file_info_impl file_info_merge filesystem \
+		filesystem_helper foosort fsItem guids input input_file_type main_thread_callback metadb_handle metadb_handle_list \
+		playable_location playlist preferences_page replaygain_info service titleformat utility) \
+	$(patsubst %, $(FOOBAR2000_SDK_DIR)/pfc/%.cpp, audio_math audio_sample bit_array bsearch cpuid filehandle guid other pathUtils sort \
+		splitString2 string-compare string-lite string_base string_conv string-conv-lite threads timers unicode-normalize utf8 win-objects)
+	$(WIN_CL) -DFOOBAR2000 -DWIN32 -DUNICODE -D_UNICODE -EHsc -I$(FOOBAR2000_SDK_DIR) -I$(FOOBAR2000_SDK_DIR)/foobar2000 \
+		$(FOOBAR2000_SDK_DIR)/foobar2000/shared/shared-$(if $(findstring x64,$(@D)),x64,Win32).lib comctl32.lib comdlg32.lib ole32.lib shell32.lib shlwapi.lib user32.lib -link -release -noexp -noimplib
+CLEAN += win32/foo_asap.dll win32/x64/foo_asap.dll
 
 win32/foobar2000/foo_asap.res: $(call src,win32/gui.rc asap.h win32/settings_dlg.h)
 	$(WIN_WINDRES) -DFOOBAR2000

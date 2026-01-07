@@ -30,7 +30,6 @@
 #include "info_dlg.h"
 #include "settings_dlg.h"
 
-#define UNICODE // NOT for info_dlg.h
 #include "foobar2000/SDK/foobar2000.h"
 #include "foobar2000/SDK/coreDarkMode.h"
 

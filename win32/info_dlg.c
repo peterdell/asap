@@ -1,7 +1,7 @@
 /*
  * info_dlg.c - file information dialog box
  *
- * Copyright (C) 2007-2025  Piotr Fusik
+ * Copyright (C) 2007-2026  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -135,8 +135,6 @@ bool loadFiles(ASAP *asap, const char *filename)
 }
 
 HWND infoDialog = NULL;
-
-#ifndef _UNICODE /* TODO */
 
 static char playing_filename[MAX_PATH];
 static int playing_song = 0;
@@ -318,7 +316,7 @@ static void setEditedSong(int song)
 static void showEditTip(int nID, LPCWSTR title, LPCWSTR message)
 {
 	EDITBALLOONTIP ebt = { sizeof(EDITBALLOONTIP), title, message, TTI_ERROR };
-	SendDlgItemMessage(infoDialog, nID, EM_SHOWBALLOONTIP, 0, (LPARAM) &ebt);
+	SendDlgItemMessageW(infoDialog, nID, EM_SHOWBALLOONTIP, 0, (LPARAM) &ebt);
 }
 
 static bool isExt(const char *filename, const char *ext)
@@ -403,7 +401,7 @@ static void toggleCalendar(HWND hDlg)
 		icex.dwSize = sizeof(icex);
 		icex.dwICC = ICC_DATE_CLASSES;
 		InitCommonControlsEx(&icex);
-		monthcal = CreateWindowExA(0, MONTHCAL_CLASS, "", WS_BORDER | WS_POPUP, 0, 0, 0, 0, hDlg, NULL, NULL, NULL);
+		monthcal = CreateWindowExA(0, MONTHCAL_CLASSA, "", WS_BORDER | WS_POPUP, 0, 0, 0, 0, hDlg, NULL, NULL, NULL); // TODO
 		/* subclass month calendar, so that it hides when looses focus */
 		monthcalOriginalWndProc = (WNDPROC) SetWindowLongPtr(monthcal, GWLP_WNDPROC, (LONG_PTR) MonthCalWndProc);
 	}
@@ -560,7 +558,7 @@ static bool saveInfoAs(void)
 		*ext = '\0';
 		ofn.lpstrDefExt = ext + 1;
 	}
-	if (!GetSaveFileName(&ofn))
+	if (!GetSaveFileNameA(&ofn))
 		return false;
 	if (isExt(filename, ".xex")) {
 		switch (MessageBoxA(infoDialog, "Do you want to display information during playback?", "ASAP", MB_YESNOCANCEL | MB_ICONQUESTION)) {
@@ -682,7 +680,7 @@ static INT_PTR CALLBACK infoDialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPAR
 				ShowWindow(monthcal, SW_HIDE);
 				char str[32];
 				sprintf(str, "%02d/%02d/%d", psc->stSelStart.wDay, psc->stSelStart.wMonth, psc->stSelStart.wYear);
-				SetDlgItemText(hDlg, IDC_DATE, str);
+				SetDlgItemTextA(hDlg, IDC_DATE, str);
 				ASAPInfo_SetDate(edited_info, str);
 				updateSaveButtons(INVALID_FIELD_DATE, true);
 			}
@@ -773,5 +771,3 @@ const ASTIL *getPlayingASTIL(void)
 	ASTIL_Load(astil, playing_filename, playing_song);
 	return astil;
 }
-
-#endif /* _UNICODE */
