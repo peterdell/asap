@@ -15,6 +15,7 @@ dist: \
 	release/asap-$(VERSION)-android.apk \
 	release/asap-$(VERSION)-web.zip \
 	release/asap-$(VERSION)-win32.zip \
+	release/asap-$(VERSION)-win64.zip \
 	release/signed-msi \
 	release/foo_asap-$(VERSION).fb2k-component \
 	srcdist
