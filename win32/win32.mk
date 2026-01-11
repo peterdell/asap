@@ -31,13 +31,13 @@ mingw: $(addprefix win32/,asapconv.exe libasap.a asapscan.exe wasap.exe bass_asa
 
 # asapconv
 
-win32/asapconv.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
+win32/asapconv.exe win32/x64/asapconv.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
 	$(WIN_CC) -DHAVE_LIBMP3LAME -DHAVE_LIBMP3LAME_DLL
-CLEAN += win32/asapconv.exe
+CLEAN += win32/asapconv.exe win32/x64/asapconv.exe
 
-win32/asapconv-static-lame.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
+win32/asapconv-static-lame.exe win32/x64/asapconv-static-lame.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
 	$(WIN_CC) -DHAVE_LIBMP3LAME -lmp3lame
-CLEAN += win32/asapconv-static-lame.exe
+CLEAN += win32/asapconv-static-lame.exe win32/x64/asapconv-static-lame.exe
 
 win32/asapconv-no-lame.exe win32/x64/asapconv-no-lame.exe: $(call src,asapconv.c asap-stdio.[ch] asap.[ch])
 	$(WIN_CC)
@@ -65,15 +65,15 @@ CLEAN += win32/asap-sdl.exe
 
 # asapscan
 
-win32/asapscan.exe: $(call src,asapscan.c asap-stdio.[ch] asap-asapscan.h)
+win32/asapscan.exe win32/x64/asapscan.exe: $(call src,asapscan.c asap-stdio.[ch] asap-asapscan.h)
 	$(WIN_CC)
-CLEAN += win32/asapscan.exe
+CLEAN += win32/asapscan.exe win32/x64/asapscan.exe
 
 # sap2txt
 
-win32/sap2txt.exe: $(srcdir)sap2txt.c
+win32/sap2txt.exe win32/x64/sap2txt.exe: $(srcdir)sap2txt.c
 	$(WIN_CC) -static -lz
-CLEAN += win32/sap2txt.exe
+CLEAN += win32/sap2txt.exe win32/x64/sap2txt.exe
 
 # WASAP
 
@@ -195,11 +195,12 @@ release/asap-$(VERSION)-win32.msi: $(call src,win32/setup/asap.wxs release/relea
 	$(WIX) build -o $@ -d VERSION=$(VERSION) -ext WixToolset.UI.wixext -b win32 -b release -b $(srcdir)win32/setup -b $(srcdir)win32 $<
 
 release/asap-$(VERSION)-win64.msi: $(call src,win32/setup/asap.wxs release/release.mk win32/wasap/wasap.ico win32/setup/license.rtf win32/setup/asap-banner.jpg win32/setup/asap-dialog.jpg win32/shellex/ASAPShellEx.propdesc) \
-	$(addprefix win32/,asapconv.exe sap2txt.exe wasap.exe in_asap.dll xmp-asap.dll apokeysnd.dll ASAPShellEx.dll signed) \
-	$(addprefix win32/x64/,bass_asap.dll ASAPShellEx.dll foo_asap.dll libasap_plugin.dll)
+	$(addprefix win32/,in_asap.dll xmp-asap.dll apokeysnd.dll signed) \
+	$(addprefix win32/x64/,asapconv.exe sap2txt.exe wasap.exe bass_asap.dll ASAPShellEx.dll foo_asap.dll libasap_plugin.dll)
 	$(WIX) build -o $@ -d VERSION=$(VERSION) -ext WixToolset.UI.wixext -b win32 -arch x64 -b $(srcdir)/win32/setup -b $(srcdir)win32 $<
 
-win32/signed: $(addprefix win32/,asapconv.exe sap2txt.exe wasap.exe in_asap.dll xmp-asap.dll bass_asap.dll apokeysnd.dll ASAPShellEx.dll foo_asap.dll libasap_plugin.dll x64/bass_asap.dll x64/ASAPShellEx.dll x64/foo_asap.dll x64/libasap_plugin.dll)
+win32/signed: $(addprefix win32/,asapconv.exe asapscan.exe sap2txt.exe wasap.exe in_asap.dll xmp-asap.dll bass_asap.dll apokeysnd.dll ASAPShellEx.dll foo_asap.dll libasap_plugin.dll) \
+	$(addprefix win32/x64/,asapconv.exe asapscan.exe sap2txt.exe wasap.exe bass_asap.dll ASAPShellEx.dll foo_asap.dll libasap_plugin.dll)
 	$(DO_SIGN)
 CLEAN += win32/signed
 

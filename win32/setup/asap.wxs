@@ -218,8 +218,8 @@
 
 		<StandardDirectory Id="ProgramFiles6432Folder">
 			<Directory Id="ASAP.DIR" Name="ASAP">
-				<Component Id="wasap.exe" Bitness="always32">
-					<File Id="wasap.exe" Source="wasap.exe" Checksum="yes" KeyPath="yes" />
+				<Component Id="wasap.exe">
+					<File Id="wasap.exe" Source="$(var.SRC_DIR)wasap.exe" Checksum="yes" KeyPath="yes" />
 				</Component>
 				<Component Id="wasap.ext">
 					<RegistryValue Root="HKCR" Key="asap.file" Name="wasap" Type="integer" Value="1" KeyPath="yes" />
@@ -234,8 +234,8 @@
 					</ProgId>
 				</Component>
 
-				<Component Id="asapconv.exe" Bitness="always32">
-					<File Source="asapconv.exe" Checksum="yes" KeyPath="yes" />
+				<Component Id="asapconv.exe">
+					<File Source="$(var.SRC_DIR)asapconv.exe" Checksum="yes" KeyPath="yes" />
 				</Component>
 				<Component Id="path" Guid="D7247D41-0B9A-42D3-9847-06C37F88E2ED">
 					<Environment Id="path" Action="set" Name="Path" Part="last" Permanent="no" System="yes" Value="[ASAP.DIR]" />
@@ -270,8 +270,8 @@
 					<?endforeach?>
 				</Component>
 
-				<Component Id="sap2txt.exe" Bitness="always32">
-					<File Source="sap2txt.exe" Checksum="yes" KeyPath="yes" />
+				<Component Id="sap2txt.exe">
+					<File Source="$(var.SRC_DIR)sap2txt.exe" Checksum="yes" KeyPath="yes" />
 				</Component>
 				<Component Id="diff_sap.js">
 					<File Id="diff_sap.js" Source="diff-sap.js" KeyPath="yes" />
