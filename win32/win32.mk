@@ -195,7 +195,8 @@ release/asap-$(VERSION)-win32.msi: $(call src,win32/setup/asap.wxs release/relea
 	$(WIX) build -o $@ -d VERSION=$(VERSION) -ext WixToolset.UI.wixext -b win32 -b release -b $(srcdir)win32/setup -b $(srcdir)win32 $<
 
 release/asap-$(VERSION)-win64.msi: $(call src,win32/setup/asap.wxs release/release.mk win32/wasap/wasap.ico win32/setup/license.rtf win32/setup/asap-banner.jpg win32/setup/asap-dialog.jpg win32/shellex/ASAPShellEx.propdesc) \
-	$(addprefix win32/x64/,bass_asap.dll ASAPShellEx.dll foo_asap.dll libasap_plugin.dll) win32/signed
+	$(addprefix win32/,asapconv.exe sap2txt.exe wasap.exe in_asap.dll xmp-asap.dll apokeysnd.dll ASAPShellEx.dll signed) \
+	$(addprefix win32/x64/,bass_asap.dll ASAPShellEx.dll foo_asap.dll libasap_plugin.dll)
 	$(WIX) build -o $@ -d VERSION=$(VERSION) -ext WixToolset.UI.wixext -b win32 -arch x64 -b $(srcdir)/win32/setup -b $(srcdir)win32 $<
 
 win32/signed: $(addprefix win32/,asapconv.exe sap2txt.exe wasap.exe in_asap.dll xmp-asap.dll bass_asap.dll apokeysnd.dll ASAPShellEx.dll foo_asap.dll libasap_plugin.dll x64/bass_asap.dll x64/ASAPShellEx.dll x64/foo_asap.dll x64/libasap_plugin.dll)
