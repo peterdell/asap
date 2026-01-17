@@ -1,7 +1,7 @@
 /*
  * gui.rc - Windows resources
  *
- * Copyright (C) 2005-2023  Piotr Fusik
+ * Copyright (C) 2005-2026  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -51,9 +51,7 @@ IDR_TRAYMENU MENU
 			MENUITEM "&1", IDM_SONG1
 		}
 		MENUITEM "&Stop", IDM_STOP, GRAYED
-#ifndef _UNICODE /* TODO */
 		MENUITEM "File &information...", IDM_FILE_INFO, GRAYED
-#endif
 		MENUITEM "Save as &WAV...", IDM_SAVE_WAV, GRAYED
 		MENUITEM "&About WASAP...", IDM_ABOUT
 		MENUITEM "&Exit", IDM_EXIT

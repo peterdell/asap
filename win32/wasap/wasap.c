@@ -26,22 +26,21 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <shellapi.h>
-#include <tchar.h>
 
 #include "asap.h"
 #include "info_dlg.h"
 #include "wasap.h"
 
-#define APP_TITLE        _T("WASAP")
-#define WND_CLASS_NAME   _T("WASAP")
-#define OPEN_TITLE       _T("Select Atari 8-bit music")
+#define APP_TITLE        "WASAP"
+#define WND_CLASS_NAME   "WASAP"
+#define OPEN_TITLE       "Select Atari 8-bit music"
 #define BITS_PER_SAMPLE  16
 #define BUFFERS          2
 #define BUFFERED_BLOCKS  4096
 
 static ASAP *asap;
 static int songs = 0;
-static _TCHAR current_filename[MAX_PATH] = _T("");
+static char current_filename[MAX_PATH] = "";
 static int current_song;
 
 static HWND hWnd;
@@ -166,22 +165,22 @@ static void Tray_Modify(HICON hIcon)
 {
 	nid.hIcon = hIcon;
 	if (songs > 0) {
-		LPCTSTR pb;
-		LPCTSTR pe;
+		const char *pb;
+		const char *pe;
 		for (pb = pe = current_filename; *pe != '\0'; pe++) {
 			if (*pe == '\\' || *pe == '/')
 				pb = pe + 1;
 		}
 		/* we need to be careful because szTip is only 64 characters */
 		/* 5 + 2 + max 33 */
-		int len = _stprintf(nid.szTip, pe - pb <= 33 ? APP_TITLE ": %s" : APP_TITLE ": %.30s...", pb);
+		int len = sprintf(nid.szTip, pe - pb <= 33 ? APP_TITLE ": %s" : APP_TITLE ": %.30s...", pb);
 		if (songs > 1) {
 			/* 7 + max 3 + 4 + max 3 + 1*/
-			_stprintf(nid.szTip + len, _T(" (song %d of %d)"), current_song + 1, songs);
+			sprintf(nid.szTip + len, " (song %d of %d)", current_song + 1, songs);
 		}
 	}
 	else
-		_tcscpy(nid.szTip, APP_TITLE);
+		strcpy(nid.szTip, APP_TITLE);
 	Shell_NotifyIcon(NIM_MODIFY, &nid);
 }
 
@@ -196,7 +195,7 @@ static HICON hPlayIcon;
 static HMENU hTrayMenu;
 static HMENU hSongMenu;
 
-static void ShowError(LPCTSTR message)
+static void ShowError(const char *message)
 {
 	errorShown = true;
 	MessageBox(hWnd, message, APP_TITLE, MB_OK | MB_ICONERROR);
@@ -209,9 +208,9 @@ static void ShowAbout(void)
 		sizeof(MSGBOXPARAMS),
 		hWnd,
 		hInst,
-		_T(ASAPInfo_CREDITS
+		ASAPInfo_CREDITS
 		"WASAP icons (C) 2005 Lukasz Sychowicz\n\n"
-		ASAPInfo_COPYRIGHT),
+		ASAPInfo_COPYRIGHT,
 		APP_TITLE " " ASAPInfo_VERSION,
 		MB_OK | MB_USERICON,
 		MAKEINTRESOURCE(IDI_APP),
@@ -230,7 +229,7 @@ static void SetSongsMenu(int n)
 	while (i > n)
 		DeleteMenu(hSongMenu, --i, MF_BYPOSITION);
 	while (++i <= n) {
-		_TCHAR str[3];
+		char str[3];
 		str[0] = i <= 9 ? '&' : '0' + i / 10;
 		str[1] = '0' + i % 10;
 		str[2] = '\0';
@@ -257,7 +256,7 @@ static void StopPlayback(void)
 static bool DoLoad(ASAP *asap)
 {
 	if (!loadFiles(asap, current_filename)) {
-		ShowError(_T("Unsupported file format"));
+		ShowError("Unsupported file format");
 		return false;
 	}
 	return true;
@@ -281,9 +280,7 @@ static void LoadAndPlay(int song)
 	EnableMenuItem(hTrayMenu, 1, MF_BYPOSITION | MF_ENABLED); /* songs */
 	EnableMenuItem(hTrayMenu, IDM_FILE_INFO, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(hTrayMenu, IDM_SAVE_WAV, MF_BYCOMMAND | MF_ENABLED);
-#ifndef _UNICODE /* TODO */
 	updateInfoDialog(current_filename, song);
-#endif
 	SetSongsMenu(songs);
 	CheckMenuRadioItem(hSongMenu, 0, songs - 1, song, MF_BYPOSITION);
 	current_song = song;
@@ -293,11 +290,11 @@ static void LoadAndPlay(int song)
 	else
 		duration = ASAPInfo_GetDuration(info, song);
 	if (!ASAP_PlaySong(asap, song, duration)) {
-		ShowError(_T("This file is a bad rip!"));
+		ShowError("This file is a bad rip!");
 		return;
 	}
 	if (!WaveOut_Open(ASAPInfo_GetChannels(info))) {
-		ShowError(_T("Error initalizing WaveOut"));
+		ShowError("Error initalizing WaveOut");
 		return;
 	}
 	EnableMenuItem(hTrayMenu, IDM_STOP, MF_BYCOMMAND | MF_ENABLED);
@@ -310,7 +307,7 @@ static void SelectAndLoadFile(void)
 		sizeof(OPENFILENAME),
 		NULL,
 		0,
-		_T("All supported\0"
+		"All supported\0"
 		"*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.md1;*.md2;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc;*.d15;*.d8\0"
 #define ASAP_FILTER(description, masks) description " (" masks ")\0" masks "\0"
 		ASAP_FILTER("Slight Atari Player", "*.sap")
@@ -322,7 +319,7 @@ static void SelectAndLoadFile(void)
 		ASAP_FILTER("Theta Music Composer 2.x", "*.tm2")
 		ASAP_FILTER("Future Composer", "*.fc")
 		ASAP_FILTER("Music ProTracker samples", "*.d15;*.d8")
-		"\0"),
+		"\0",
 		NULL,
 		0,
 		1,
@@ -351,7 +348,7 @@ static void SelectAndLoadFile(void)
 #define WAV_PROGRESS_DURATION_SHIFT 10
 
 static int wav_progressLimit;
-static _TCHAR wav_filename[MAX_PATH];
+static char wav_filename[MAX_PATH];
 
 static INT_PTR CALLBACK WavProgressDialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -396,25 +393,25 @@ static void SaveWav(void)
 	int duration = ASAPInfo_GetDuration(ASAP_GetInfo(asap), current_song);
 	if (duration < 0) {
 		if (MessageBox(hWnd,
-			_T("This song has unknown duration.\n"
+			"This song has unknown duration.\n"
 			"Use \"File information\" to update the source file with the correct duration.\n"
-			"Do you want to save 3 minutes?"),
-			_T("Unknown duration"), MB_YESNO | MB_ICONWARNING) != IDYES)
+			"Do you want to save 3 minutes?",
+			"Unknown duration", MB_YESNO | MB_ICONWARNING) != IDYES)
 			return;
 		duration = 180000;
 	}
 	ASAP_PlaySong(asap, current_song, duration);
 
-	size_t filenameChars = _tcsrchr(current_filename, '.') + 1 - current_filename;
-	memcpy(wav_filename, current_filename, filenameChars * sizeof(_TCHAR));
-	_tcscpy(wav_filename + filenameChars, _T("wav"));
+	size_t filenameChars = strrchr(current_filename, '.') + 1 - current_filename;
+	memcpy(wav_filename, current_filename, filenameChars);
+	strcpy(wav_filename + filenameChars, "wav");
 
 	popupShown = true;
 	static OPENFILENAME ofn = {
 		sizeof(OPENFILENAME),
 		NULL,
 		0,
-		_T("WAV files (*.wav)\0*.wav\0\0"),
+		"WAV files (*.wav)\0*.wav\0\0",
 		NULL,
 		0,
 		0,
@@ -423,11 +420,11 @@ static void SaveWav(void)
 		NULL,
 		0,
 		NULL,
-		_T("Select output file"),
+		"Select output file",
 		OFN_ENABLESIZING | OFN_EXPLORER | OFN_OVERWRITEPROMPT,
 		0,
 		0,
-		_T("wav"),
+		"wav",
 		0,
 		NULL,
 		NULL
@@ -436,7 +433,7 @@ static void SaveWav(void)
 	if (GetSaveFileName(&ofn)) {
 		wav_progressLimit = duration >> WAV_PROGRESS_DURATION_SHIFT;
 		if (!DoSaveWav(asap))
-			ShowError(_T("Cannot save file"));
+			ShowError("Cannot save file");
 	}
 	popupShown = false;
 }
@@ -455,11 +452,9 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM l
 		case IDM_STOP:
 			StopPlayback();
 			break;
-#ifndef _UNICODE /* TODO */
 		case IDM_FILE_INFO:
 			showInfoDialog(hInst, hWnd, current_filename, current_song);
 			break;
-#endif
 		case IDM_SAVE_WAV:
 			SaveWav();
 			break;
@@ -518,10 +513,10 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM l
 	return 0;
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	LPTSTR pb;
-	LPTSTR pe;
+	LPSTR pb;
+	LPSTR pe;
 	for (pb = lpCmdLine; *pb == ' ' || *pb == '\t'; pb++);
 	for (pe = pb; *pe != '\0'; pe++);
 	while (--pe > pb && (*pe == ' ' || *pe == '\t'));
@@ -539,7 +534,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 		/* an instance of WASAP is already running */
 		if (*pb != '\0') {
 			/* pass the filename */
-			COPYDATASTRUCT cds = { 'O', (DWORD) (pe + 1 - pb) * sizeof(_TCHAR), pb };
+			COPYDATASTRUCT cds = { 'O', (DWORD) (pe + 1 - pb), pb };
 			SendMessage(hWnd, WM_COPYDATA, (WPARAM) NULL, (LPARAM) &cds);
 		}
 		else {
@@ -590,10 +585,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 	nid.hWnd = hWnd;
 	nid.hIcon = hStopIcon;
 	Shell_NotifyIcon(NIM_ADD, &nid);
-	taskbarCreatedMessage = RegisterWindowMessage(_T("TaskbarCreated"));
+	taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
 
 	if (*pb != '\0') {
-		memcpy(current_filename, pb, (pe + 1 - pb) * sizeof(_TCHAR));
+		memcpy(current_filename, pb, pe + 1 - pb);
 		LoadAndPlay(-1);
 	}
 	else
