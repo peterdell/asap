@@ -173,14 +173,14 @@ static void Tray_Modify(HICON hIcon)
 		}
 		/* we need to be careful because szTip is only 64 characters */
 		/* 5 + 2 + max 33 */
-		int len = sprintf(nid.szTip, pe - pb <= 33 ? APP_TITLE ": %s" : APP_TITLE ": %.30s...", pb);
+		int len = snprintf(nid.szTip, sizeof(nid.szTip), pe - pb <= 33 ? APP_TITLE ": %s" : APP_TITLE ": %.30s...", pb);
 		if (songs > 1) {
 			/* 7 + max 3 + 4 + max 3 + 1*/
-			sprintf(nid.szTip + len, " (song %d of %d)", current_song + 1, songs);
+			snprintf(nid.szTip + len, sizeof(nid.szTip) - len, " (song %d of %d)", current_song + 1, songs);
 		}
 	}
 	else
-		strcpy(nid.szTip, APP_TITLE);
+		strcpy_s(nid.szTip, sizeof(nid.szTip), APP_TITLE);
 	Shell_NotifyIcon(NIM_MODIFY, &nid);
 }
 
@@ -402,10 +402,7 @@ static void SaveWav(void)
 	}
 	ASAP_PlaySong(asap, current_song, duration);
 
-	size_t filenameChars = strrchr(current_filename, '.') + 1 - current_filename;
-	memcpy(wav_filename, current_filename, filenameChars);
-	strcpy(wav_filename + filenameChars, "wav");
-
+	snprintf(wav_filename, sizeof(wav_filename), "%.*s.wav", (int) (strrchr(current_filename, '.') - current_filename), current_filename);
 	popupShown = true;
 	static OPENFILENAME ofn = {
 		sizeof(OPENFILENAME),
@@ -587,7 +584,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	Shell_NotifyIcon(NIM_ADD, &nid);
 	taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
 
-	if (*pb != '\0') {
+	if (*pb != '\0' && pe + 1 - pb <= sizeof(current_filename)) {
 		memcpy(current_filename, pb, pe + 1 - pb);
 		LoadAndPlay(-1);
 	}
