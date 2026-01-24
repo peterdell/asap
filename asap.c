@@ -2808,7 +2808,7 @@ static void ASAP_PutLittleEndians(uint8_t *buffer, int offset, int value1, int v
 
 static int ASAP_PutWavMetadata(uint8_t *buffer, int offset, int fourCC, const char *value)
 {
-	int len = (ptrdiff_t) strlen(value);
+	int len = (int) (ptrdiff_t) strlen(value);
 	if (len > 0) {
 		ASAP_PutLittleEndians(buffer, offset, fourCC, (len | 1) + 1);
 		offset += 8;
@@ -4442,7 +4442,7 @@ bool ASAPInfo_SetDate(ASAPInfo *self, const char *value)
 
 static int ASAPInfo_CheckDate(const ASAPInfo *self)
 {
-	int n = (ptrdiff_t) strlen(self->date);
+	int n = (int) (ptrdiff_t) strlen(self->date);
 	switch (n) {
 	case 4:
 	case 7:
