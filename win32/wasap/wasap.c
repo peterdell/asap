@@ -527,6 +527,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM l
 			}
 			memcpy(current_filename, pcds->lpData, pcds->cbData);
 			LoadAndPlay(-1);
+			return TRUE;
 		}
 		break;
 	default:
