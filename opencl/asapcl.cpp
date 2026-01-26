@@ -25,7 +25,6 @@
 #include <cstdio>
 #include <cstring>
 #include <memory>
-#include <string>
 #include <vector>
 
 #define CL_TARGET_OPENCL_VERSION 200
@@ -111,7 +110,7 @@ int main(int argc, char **argv)
 	ASAPInfo *info = ASAPInfo_New();
 	int exit_code = 0;
 
-	std::string filenames;
+	std::vector<char> filenames;
 	std::vector<uint8_t> modules;
 	std::vector<ASAP_Workload> workloads;
 	size_t wavs_len = 0;
@@ -143,7 +142,7 @@ int main(int argc, char **argv)
 			workloads.emplace_back(wavs_len, wav_len, filenames.size(), modules.size(), module_len, songs == 1 ? -1 : song, duration);
 			wavs_len += wav_len;
 		}
-		filenames.append(input_file, input_file + strlen(input_file) + 1);
+		filenames.insert(filenames.end(), input_file, input_file + strlen(input_file) + 1);
 		modules.insert(modules.end(), module, module + module_len);
 	}
 
