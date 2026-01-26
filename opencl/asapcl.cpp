@@ -101,14 +101,9 @@ int main(int argc, char **argv)
 	}
 	check_error(err);
 
-	cl_kernel kernel = clCreateKernel(program, "asap2wav", &err);
-	check_error(err);
-
-	cl_command_queue queue = clCreateCommandQueueWithProperties(context, device, nullptr, &err);
-	check_error(err);
-
 	int exit_code = 0;
 
+	fprintf(stderr, "Loading files\n");
 	std::vector<char> filenames;
 	std::vector<uint8_t> modules;
 	std::vector<ASAP_Workload> workloads;
@@ -147,6 +142,13 @@ int main(int argc, char **argv)
 		modules.insert(modules.end(), module, module + module_len);
 	}
 	ASAPInfo_Delete(info);
+	fprintf(stderr, "Emulating %zu songs\n", workloads.size());
+
+	cl_kernel kernel = clCreateKernel(program, "asap2wav", &err);
+	check_error(err);
+
+	cl_command_queue queue = clCreateCommandQueueWithProperties(context, device, nullptr, &err);
+	check_error(err);
 
 	cl_mem filenames_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, filenames.size(), filenames.data(), &err);
 	check_error(err);
