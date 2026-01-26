@@ -1,22 +1,24 @@
 typedef struct {
 	long wav_offset;
+	int wav_len;
+	int filename_offset;
+	int module_offset;
+	int module_len;
+	int song;
 	int duration;
-	int padding;
 } ASAP_Workload;
 
-kernel void asap2wav(constant char *filename, global const uchar *module, int module_len, global uchar *wav, constant ASAP_Workload *workloads)
+kernel void asap2wav(constant char *filenames, global const uchar *modules, global uchar *wavs, constant ASAP_Workload *workloads)
 {
-	int song = get_global_id(0);
-	constant ASAP_Workload *workload = workloads + song;
+	constant ASAP_Workload *workload = workloads + get_global_id(0);
+	global uchar *wav = wavs + workload->wav_offset;
 	ASAP asap;
 	ASAP_Construct(&asap);
-	if (!ASAP_Load(&asap, filename, module, module_len)
-	 || !ASAP_PlaySong(&asap, song, workload->duration)) {
-		wav[0] = '\0';
-		return;
+	if (ASAP_Load(&asap, filenames + workload->filename_offset, modules + workload->module_offset, workload->module_len)
+	 && ASAP_PlaySong(&asap, max(workload->song, 0), workload->duration)) {
+		int header_len = ASAP_GetWavHeader(&asap, wav, ASAPSampleFormat_S16_L_E, false);
+		ASAP_Generate(&asap, wav + header_len, workload->wav_len - header_len, ASAPSampleFormat_S16_L_E);
 	}
-	int wav_len = workload[1].wav_offset - workload->wav_offset;
-	wav += workload->wav_offset;
-	int header_len = ASAP_GetWavHeader(&asap, wav, ASAPSampleFormat_S16_L_E, false);
-	ASAP_Generate(&asap, wav + header_len, wav_len - header_len, ASAPSampleFormat_S16_L_E);
+	else
+		wav[0] = '\0';
 }

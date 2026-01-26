@@ -21,10 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <memory>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
+#include <string>
+#include <vector>
 
 #define CL_TARGET_OPENCL_VERSION 200
 #include <CL/cl.h>
@@ -39,11 +41,20 @@ void check_error(int err)
 	}
 }
 
-typedef struct {
+struct ASAP_Workload
+{
 	cl_long wav_offset;
+	cl_int wav_len;
+	cl_int filename_offset;
+	cl_int module_offset;
+	cl_int module_len;
+	cl_int song;
 	cl_int duration;
-	cl_int padding;
-} ASAP_Workload;
+	ASAP_Workload() = default;
+	ASAP_Workload(cl_long wav_offset, cl_int wav_len, cl_int filename_offset, cl_int module_offset, cl_int module_len, cl_int song, cl_int duration)
+		: wav_offset(wav_offset), wav_len(wav_len), filename_offset(filename_offset), module_offset(module_offset), module_len(module_len), song(song), duration(duration) {
+	}
+};
 
 int main(int argc, char **argv)
 {
@@ -100,15 +111,12 @@ int main(int argc, char **argv)
 	ASAPInfo *info = ASAPInfo_New();
 	int exit_code = 0;
 
+	std::string filenames;
+	std::vector<uint8_t> modules;
+	std::vector<ASAP_Workload> workloads;
+	size_t wavs_len = 0;
 	for (int argi = 1; argi < argc; argi++) {
 		const char *input_file = argv[argi];
-		const char *input_dot = strrchr(input_file, '.');
-		if (input_dot == nullptr) {
-			fprintf(stderr, "%s: missing filename extension\n", input_file);
-			exit_code = 1;
-			continue;
-		}
-
 		FILE *fp = fopen(input_file, "rb");
 		if (fp == NULL) {
 			fprintf(stderr, "Cannot open %s\n", input_file);
@@ -127,78 +135,80 @@ int main(int argc, char **argv)
 		int channels = ASAPInfo_GetChannels(info);
 		int songs = ASAPInfo_GetSongs(info);
 
-		fprintf(stderr, "Converting %s\n", input_file);
-		size_t wav_len = 0;
-		std::unique_ptr<ASAP_Workload[]> workloads(new ASAP_Workload[songs + 1]);
 		for (int song = 0; song < songs; song++) {
 			int duration = ASAPInfo_GetDuration(info, song);
 			if (duration < 0)
 				duration = 180 * 1000;
-			int song_wav_len = 44 + duration * (ASAP_SAMPLE_RATE / 100) / 10 * channels * 2;
-			workloads[song].wav_offset = wav_len;
-			workloads[song].duration = duration;
-			wav_len += song_wav_len;
+			int wav_len = 44 + duration * (ASAP_SAMPLE_RATE / 100) / 10 * channels * 2;
+			workloads.emplace_back(wavs_len, wav_len, filenames.size(), modules.size(), module_len, songs == 1 ? -1 : song, duration);
+			wavs_len += wav_len;
 		}
-		workloads[songs].wav_offset = wav_len;
-
-		cl_mem filename_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, strlen(input_file) + 1, const_cast<char *>(input_file), &err);
-		check_error(err);
-		check_error(clSetKernelArg(kernel, 0, sizeof(filename_buffer), &filename_buffer));
-
-		cl_mem module_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, module_len, module, &err);
-		check_error(err);
-		check_error(clSetKernelArg(kernel, 1, sizeof(module_buffer), &module_buffer));
-		check_error(clSetKernelArg(kernel, 2, sizeof(module_len), &module_len));
-
-		cl_mem wav_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, wav_len, nullptr, &err);
-		check_error(err);
-		check_error(clSetKernelArg(kernel, 3, sizeof(wav_buffer), &wav_buffer));
-
-		cl_mem workloads_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, (songs + 1) * sizeof(ASAP_Workload), workloads.get(), &err);
-		check_error(err);
-		check_error(clSetKernelArg(kernel, 4, sizeof(workloads_buffer), &workloads_buffer));
-
-		const size_t dim = songs;
-		check_error(clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &dim, nullptr, 0, nullptr, nullptr));
-
-		std::unique_ptr<uint8_t[]> wav(new uint8_t[wav_len]);
-		check_error(clEnqueueReadBuffer(queue, wav_buffer, false, 0, wav_len, wav.get(), 0, nullptr, nullptr));
-
-		check_error(clFinish(queue));
-
-		for (int song = 0; song < songs; song++) {
-			const uint8_t *song_wav = wav.get() + workloads[song].wav_offset;
-			if (song_wav[0] != 'R') {
-				fprintf(stderr, "%s: conversion error\n", input_file);
-				exit_code = 1;
-				break;
-			}
-	
-			char output_file[FILENAME_MAX];
-			int output_file_len = songs == 1 ? snprintf(output_file, sizeof(output_file), "%.*s.wav", (int) (input_dot - input_file), input_file)
-			                                 : snprintf(output_file, sizeof(output_file), "%.*s (song %d).wav", (int) (input_dot - input_file), input_file, song + 1);
-			if (output_file_len >= static_cast<int>(sizeof(output_file))) {
-				fprintf(stderr, "%s: filename too long\n", input_file);
-				exit_code = 1;
-				break;
-			}
-
-			fp = fopen(output_file, "wb");
-			if (fp == NULL) {
-				fprintf(stderr, "Cannot create %s\n", output_file);
-				exit_code = 1;
-				break;
-			}
-			int song_wav_len = workloads[song + 1].wav_offset - workloads[song].wav_offset;
-			fwrite(song_wav, 1, song_wav_len, fp);
-			fclose(fp);
-		}
-
-		check_error(clReleaseMemObject(workloads_buffer));
-		check_error(clReleaseMemObject(wav_buffer));
-		check_error(clReleaseMemObject(module_buffer));
-		check_error(clReleaseMemObject(filename_buffer));
+		filenames.append(input_file, input_file + strlen(input_file) + 1);
+		modules.insert(modules.end(), module, module + module_len);
 	}
+
+	cl_mem filenames_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, filenames.size(), filenames.data(), &err);
+	check_error(err);
+	check_error(clSetKernelArg(kernel, 0, sizeof(filenames_buffer), &filenames_buffer));
+
+	cl_mem modules_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, modules.size(), modules.data(), &err);
+	check_error(err);
+	check_error(clSetKernelArg(kernel, 1, sizeof(modules_buffer), &modules_buffer));
+	
+	cl_mem wavs_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, wavs_len, nullptr, &err);
+	check_error(err);
+	check_error(clSetKernelArg(kernel, 2, sizeof(wavs_buffer), &wavs_buffer));
+
+	cl_mem workloads_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, workloads.size() * sizeof(ASAP_Workload), workloads.data(), &err);
+	check_error(err);
+	check_error(clSetKernelArg(kernel, 3, sizeof(workloads_buffer), &workloads_buffer));
+
+	const size_t dim = workloads.size();
+	check_error(clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &dim, nullptr, 0, nullptr, nullptr));
+
+	std::unique_ptr<uint8_t[]> wavs(new uint8_t[wavs_len]);
+	check_error(clEnqueueReadBuffer(queue, wavs_buffer, false, 0, wavs_len, wavs.get(), 0, nullptr, nullptr));
+
+	check_error(clFinish(queue));
+
+	for (const ASAP_Workload &workload : workloads) {
+		const char *input_file = filenames.data() + workload.filename_offset;
+		const uint8_t *wav = wavs.get() + workload.wav_offset;
+		if (wav[0] != 'R') {
+			fprintf(stderr, "%s: conversion error\n", input_file);
+			exit_code = 1;
+			continue;
+		}
+
+		char output_file[FILENAME_MAX];
+		int input_file_len = strrchr(input_file, '.') - input_file;
+		int song = workload.song;
+		int output_file_len = song < 0 ? snprintf(output_file, sizeof(output_file), "%.*s.wav", input_file_len, input_file)
+			: snprintf(output_file, sizeof(output_file), "%.*s (song %d).wav", input_file_len, input_file, song + 1);
+		if (output_file_len >= static_cast<int>(sizeof(output_file))) {
+			fprintf(stderr, "%s: filename too long\n", input_file);
+			exit_code = 1;
+			continue;
+		}
+
+		FILE *fp = fopen(output_file, "wb");
+		if (fp == NULL) {
+			fprintf(stderr, "Cannot create %s\n", output_file);
+			exit_code = 1;
+			break;
+		}
+		fprintf(stderr, "Writing %s\n", output_file);
+		size_t written = fwrite(wav, workload.wav_len, 1, fp);
+		if (fclose(fp) != 0 || written != 1) {
+			perror(output_file);
+			exit_code = 1;
+		}
+	}
+
+	check_error(clReleaseMemObject(workloads_buffer));
+	check_error(clReleaseMemObject(wavs_buffer));
+	check_error(clReleaseMemObject(modules_buffer));
+	check_error(clReleaseMemObject(filenames_buffer));
 
 	ASAPInfo_Delete(info);
 
