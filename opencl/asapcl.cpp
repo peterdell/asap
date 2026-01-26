@@ -107,13 +107,14 @@ int main(int argc, char **argv)
 	cl_command_queue queue = clCreateCommandQueueWithProperties(context, device, nullptr, &err);
 	check_error(err);
 
-	ASAPInfo *info = ASAPInfo_New();
 	int exit_code = 0;
 
 	std::vector<char> filenames;
 	std::vector<uint8_t> modules;
 	std::vector<ASAP_Workload> workloads;
 	size_t wavs_len = 0;
+
+	ASAPInfo *info = ASAPInfo_New();
 	for (int argi = 1; argi < argc; argi++) {
 		const char *input_file = argv[argi];
 		FILE *fp = fopen(input_file, "rb");
@@ -145,6 +146,7 @@ int main(int argc, char **argv)
 		filenames.insert(filenames.end(), input_file, input_file + strlen(input_file) + 1);
 		modules.insert(modules.end(), module, module + module_len);
 	}
+	ASAPInfo_Delete(info);
 
 	cl_mem filenames_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, filenames.size(), filenames.data(), &err);
 	check_error(err);
@@ -153,7 +155,7 @@ int main(int argc, char **argv)
 	cl_mem modules_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, modules.size(), modules.data(), &err);
 	check_error(err);
 	check_error(clSetKernelArg(kernel, 1, sizeof(modules_buffer), &modules_buffer));
-	
+
 	cl_mem wavs_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, wavs_len, nullptr, &err);
 	check_error(err);
 	check_error(clSetKernelArg(kernel, 2, sizeof(wavs_buffer), &wavs_buffer));
@@ -169,6 +171,14 @@ int main(int argc, char **argv)
 	check_error(clEnqueueReadBuffer(queue, wavs_buffer, false, 0, wavs_len, wavs.get(), 0, nullptr, nullptr));
 
 	check_error(clFinish(queue));
+	check_error(clReleaseMemObject(workloads_buffer));
+	check_error(clReleaseMemObject(wavs_buffer));
+	check_error(clReleaseMemObject(modules_buffer));
+	check_error(clReleaseMemObject(filenames_buffer));
+	check_error(clReleaseCommandQueue(queue));
+	check_error(clReleaseKernel(kernel));
+	check_error(clReleaseProgram(program));
+	check_error(clReleaseContext(context));
 
 	for (const ASAP_Workload &workload : workloads) {
 		const char *input_file = filenames.data() + workload.filename_offset;
@@ -192,7 +202,7 @@ int main(int argc, char **argv)
 
 		FILE *fp = fopen(output_file, "wb");
 		if (fp == NULL) {
-			fprintf(stderr, "Cannot create %s\n", output_file);
+			perror(output_file);
 			exit_code = 1;
 			break;
 		}
@@ -203,17 +213,5 @@ int main(int argc, char **argv)
 			exit_code = 1;
 		}
 	}
-
-	check_error(clReleaseMemObject(workloads_buffer));
-	check_error(clReleaseMemObject(wavs_buffer));
-	check_error(clReleaseMemObject(modules_buffer));
-	check_error(clReleaseMemObject(filenames_buffer));
-
-	ASAPInfo_Delete(info);
-
-	check_error(clReleaseCommandQueue(queue));
-	check_error(clReleaseKernel(kernel));
-	check_error(clReleaseProgram(program));
-	check_error(clReleaseContext(context));
 	return exit_code;
 }
