@@ -40,37 +40,6 @@ void check_error(int err)
 	}
 }
 
-class CL_Buffer
-{
-	cl_mem buffer;
-	CL_Buffer(cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_kernel kernel, cl_uint arg_index)
-	{
-		cl_int err;
-		buffer = clCreateBuffer(context, flags, size, host_ptr, &err);
-		check_error(err);
-		check_error(clSetKernelArg(kernel, arg_index, sizeof(buffer), &buffer));
-	}
-
-public:
-	template <class T>
-	CL_Buffer(cl_context context, std::vector<T> &v, cl_kernel kernel, cl_uint arg_index)
-		: CL_Buffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, v.size() * sizeof(T), v.data(), kernel, arg_index)
-	{
-	}
-
-	CL_Buffer(cl_context context, size_t size, cl_kernel kernel, cl_uint arg_index)
-		: CL_Buffer(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, size, nullptr, kernel, arg_index)
-	{
-	}
-
-	~CL_Buffer()
-	{
-		check_error(clReleaseMemObject(buffer));
-	}
-
-	cl_mem get() const { return buffer; }
-};
-
 struct ASAP_Workload
 {
 	cl_long wav_offset;
@@ -176,22 +145,30 @@ int main(int argc, char **argv)
 		filenames.insert(filenames.end(), input_file, input_file + strlen(input_file) + 1);
 		modules.insert(modules.end(), module, module + module_len);
 	}
-	ASAPInfo_Delete(info);
+
+	cl_mem filenames_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, filenames.size(), filenames.data(), &err);
+	check_error(err);
+	check_error(clSetKernelArg(kernel, 0, sizeof(filenames_buffer), &filenames_buffer));
+
+	cl_mem modules_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, modules.size(), modules.data(), &err);
+	check_error(err);
+	check_error(clSetKernelArg(kernel, 1, sizeof(modules_buffer), &modules_buffer));
+	
+	cl_mem wavs_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, wavs_len, nullptr, &err);
+	check_error(err);
+	check_error(clSetKernelArg(kernel, 2, sizeof(wavs_buffer), &wavs_buffer));
+
+	cl_mem workloads_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_NO_ACCESS, workloads.size() * sizeof(ASAP_Workload), workloads.data(), &err);
+	check_error(err);
+	check_error(clSetKernelArg(kernel, 3, sizeof(workloads_buffer), &workloads_buffer));
+
+	const size_t dim = workloads.size();
+	check_error(clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &dim, nullptr, 0, nullptr, nullptr));
 
 	std::unique_ptr<uint8_t[]> wavs(new uint8_t[wavs_len]);
-	{
-		CL_Buffer filenames_buffer(context, filenames, kernel, 0);
-		CL_Buffer modules_buffer(context, modules, kernel, 1);
-		CL_Buffer wavs_buffer(context, wavs_len, kernel, 2);
-		CL_Buffer workloads_buffer(context, workloads, kernel, 3);
+	check_error(clEnqueueReadBuffer(queue, wavs_buffer, false, 0, wavs_len, wavs.get(), 0, nullptr, nullptr));
 
-		const size_t dim = workloads.size();
-		check_error(clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &dim, nullptr, 0, nullptr, nullptr));
-
-		check_error(clEnqueueReadBuffer(queue, wavs_buffer.get(), false, 0, wavs_len, wavs.get(), 0, nullptr, nullptr));
-
-		check_error(clFinish(queue));
-	}
+	check_error(clFinish(queue));
 
 	for (const ASAP_Workload &workload : workloads) {
 		const char *input_file = filenames.data() + workload.filename_offset;
@@ -226,6 +203,13 @@ int main(int argc, char **argv)
 			exit_code = 1;
 		}
 	}
+
+	check_error(clReleaseMemObject(workloads_buffer));
+	check_error(clReleaseMemObject(wavs_buffer));
+	check_error(clReleaseMemObject(modules_buffer));
+	check_error(clReleaseMemObject(filenames_buffer));
+
+	ASAPInfo_Delete(info);
 
 	check_error(clReleaseCommandQueue(queue));
 	check_error(clReleaseKernel(kernel));
