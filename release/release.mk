@@ -37,11 +37,11 @@ release/asap-$(VERSION)-web.zip: release/COPYING.txt \
 	javascript/asap.js $(srcdir)javascript/asapweb.js
 	$(MAKEZIP)
 
-release/asap-$(VERSION)-win32.zip: release/COPYING.txt \
+release/asap-$(VERSION)-win32.zip: release/COPYING.txt $(srcdir)win32/shellex/ASAPShellEx.propdesc \
 	$(addprefix win32/,asapconv.exe asapscan.exe wasap.exe in_asap.dll foo_asap.dll apokeysnd.dll xmp-asap.dll bass_asap.dll ASAPShellEx.dll libasap_plugin.dll signed)
 	$(MAKEZIP)
 
-release/asap-$(VERSION)-win64.zip: release/COPYING.txt \
+release/asap-$(VERSION)-win64.zip: release/COPYING.txt $(srcdir)win32/shellex/ASAPShellEx.propdesc \
 	$(addprefix win32/x64/,asapconv.exe asapscan.exe wasap.exe foo_asap.dll bass_asap.dll ASAPShellEx.dll libasap_plugin.dll) win32/signed
 	$(MAKEZIP)
 
