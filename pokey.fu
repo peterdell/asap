@@ -181,7 +181,7 @@ class Pokey
 	int DeltaBufferLength;
 	int[]#? DeltaBuffer;
 #endif
-	0 .. 60 SumDACInputs;
+	int SumDACInputs;
 	int SumDACOutputs;
 
 	// POKEY DACs are characterized mostly by two types of nonlinearities:
