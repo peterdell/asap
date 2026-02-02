@@ -203,7 +203,7 @@
 						</Component>
 						<Component Id="foo_asap.ext">
 							<RegistryValue Root="HKCR" Key="asap.file" Name="foo_asap" Type="integer" Value="1" KeyPath="yes" />
-							<?foreach EXT in $(var.NATIVE_EXTS)?>
+							<?foreach EXT in $(var.ASAP_EXTS)?>
 								<ProgId Id="foobar2000.$(var.EXT)">
 									<Extension Id="$(var.EXT)">
 										<Verb Id="open" TargetProperty="FOO.EXE" Argument="&quot;%1&quot;" />
