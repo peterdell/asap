@@ -549,7 +549,9 @@ STDAPI __declspec(dllexport) InstallPropertySchema()
 		return hr;
 	hr = PSRegisterPropertySchema(szSchemaPath);
 	CoUninitialize();
-	if (SUCCEEDED(hr) || hr == INPLACE_S_TRUNCATED) // returned on Windows 10, no idea why
+	if (hr == INPLACE_S_TRUNCATED) // returned on Windows 10/11, no idea why
+		hr = S_OK;
+	if (SUCCEEDED(hr))
 		SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
 	return hr;
 }
