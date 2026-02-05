@@ -28,6 +28,7 @@
 		<?endif?>
 
 		<?define ASAP_EXTS=sap;cmc;cm3;cmr;cms;dmc;dlt;mpt;md1;md2;mpd;rmt;tmc;tm8;tm2;fc?>
+		<?define AIMP_EXTS=sap;rmt;fc?>
 		<?define DOUBLECLICK=Double-click SAP, CMC, CM3, CMR, CMS, DMC, DLT, MPT, MD1, MD2, MPD, RMT, TMC, TM8, TM2 or FC file in Windows Explorer to play it in?>
 
 		<Icon Id="wasap.ico" SourceFile="wasap/wasap.ico" />
@@ -291,12 +292,12 @@
 						<Component Id="aimp_asap.opw" Condition="AIMP.EXE">
 							<RegistryValue Root="HKCR" Key="AIMP.ASAP\shell\open" Type="string" Value="Open with AIMP" KeyPath="true" />
 							<RegistryValue Root="HKCR" Key="AIMP.ASAP\shell\open\command" Type="string" Value="&quot;[AIMP.EXE]&quot; &quot;%1&quot;" />
-							<?foreach EXT in $(var.ASAP_EXTS)?>
+							<?foreach EXT in $(var.AIMP_EXTS)?>
 								<RegistryValue Root="HKLM" Key="SOFTWARE\AIMP\capabilities\FileAssociations" Name=".$(var.EXT)" Type="string" Value="AIMP.ASAP" />
 							<?endforeach?>
 						</Component>
 						<Component Id="aimp_asap.ext" Guid="BEA9A996-FC4E-4406-A8EB-E7AC9BF62A67">
-							<?foreach EXT in $(var.ASAP_EXTS)?>
+							<?foreach EXT in $(var.AIMP_EXTS)?>
 								<RegistryValue Root="HKCR" Key=".$(var.EXT)" Type="string" Value="AIMP.ASAP" />
 							<?endforeach?>
 						</Component>
@@ -396,7 +397,7 @@
 			<Level Value="1" Condition="AIMP.DIR" />
 			<ComponentRef Id="bass_asap.dll" />
 			<ComponentRef Id="aimp_asap.opw" />
-			<Feature Id="aimp_asap.ext" Title="Associate file types" Level="0" Description="$(var.DOUBLECLICK) AIMP." AllowAdvertise="no">
+			<Feature Id="aimp_asap.ext" Title="Associate file types" Level="0" Description="Double-click SAP, RMT or FC file in Windows Explorer to play it in AIMP." AllowAdvertise="no">
 				<Level Value="9" Condition="AIMP.EXE" />
 				<ComponentRef Id="aimp_asap.ext" />
 			</Feature>
