@@ -29,7 +29,7 @@
 
 		<?define ASAP_EXTS=sap;cmc;cm3;cmr;cms;dmc;dlt;mpt;md1;md2;mpd;rmt;tmc;tm8;tm2;fc?>
 		<?define AIMP_EXTS=sap;rmt;fc?>
-		<?define DOUBLECLICK=Double-click SAP, CMC, CM3, CMR, CMS, DMC, DLT, MPT, MD1, MD2, MPD, RMT, TMC, TM8, TM2 or FC file in Windows Explorer to play it in?>
+		<?define DOUBLECLICK=Double-click SAP or other file in Windows Explorer to play it in?>
 
 		<Icon Id="wasap.ico" SourceFile="wasap/wasap.ico" />
 		<Property Id="ARPHELPLINK" Value="https://asap.sourceforge.net/" />
