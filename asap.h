@@ -93,13 +93,6 @@ bool ASAP_LoadWithExtraFiles(ASAP *self, const char *filename, uint8_t const *mo
 const ASAPInfo *ASAP_GetInfo(const ASAP *self);
 
 /**
- * Mutes the selected POKEY channels.
- * @param self This <code>ASAP</code>.
- * @param mask An 8-bit mask which selects POKEY channels to be muted.
- */
-void ASAP_MutePokeyChannels(ASAP *self, int mask);
-
-/**
  * Prepares playback of the specified song of the loaded module.
  * @param self This <code>ASAP</code>.
  * @param song Zero-based song index.
@@ -107,6 +100,13 @@ void ASAP_MutePokeyChannels(ASAP *self, int mask);
  * @return <code>false</code> on error.
  */
 bool ASAP_PlaySong(ASAP *self, int song, int duration);
+
+/**
+ * Mutes the selected POKEY channels.
+ * @param self This <code>ASAP</code>.
+ * @param mask An 8-bit mask which selects POKEY channels to be muted.
+ */
+void ASAP_MutePokeyChannels(ASAP *self, int mask);
 
 /**
  * Returns current playback position in blocks.
