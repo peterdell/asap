@@ -70,8 +70,7 @@
 	<pre>asapconv --address=a000 -o relocated.rmt original.rmt</pre>
 
 	<h2>Mass conversion</h2>
-	<p>asapconv supports filename wildcards.
-	To recursively process directories on Windows, use for example:</p>
+	<p>To recursively process directories on Windows, use for example:</p>
 	<pre>for /r ASMA %f in (*.sap) do @asapconv -o .%e %f</pre>
 	<p>The above command will extract native modules in different formats
 	and write them next to the SAP files in the ASMA directory.
