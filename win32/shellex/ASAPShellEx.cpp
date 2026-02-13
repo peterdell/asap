@@ -30,7 +30,7 @@
 #include "asap.h"
 
 static const char extensions[][5] =
-	{ ".sap", ".cmc", ".cm3", ".cmr", ".cms", ".dmc", ".dlt", ".mpt", ".md1", ".md2", ".mpd", ".rmt", ".tmc", ".tm8", ".tm2", ".fc" };
+	{ ".sap", ".cmc", ".cm3", ".cmr", ".cms", ".dmc", ".dlt", ".mpt", ".md1", ".md2", ".mpd", ".rmt", ".tmc", ".tm8", ".tm2", ".fc", ".d15", ".d8" };
 
 static HINSTANCE g_hDll;
 static LONG g_cRef = 0;

@@ -1,7 +1,7 @@
 /*
  * bass_asap.c - ASAP add-on for BASS
  *
- * Copyright (C) 2010-2025  Piotr Fusik
+ * Copyright (C) 2010-2026  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -219,7 +219,7 @@ static HSTREAM WINAPI StreamCreateProc(BASSFILE file, DWORD flags)
 __declspec(dllexport) const void *WINAPI BASSplugin(DWORD face)
 {
 	static const BASS_PLUGINFORM pluginform = {
-		BASS_CTYPE_MUSIC_ASAP, "ASAP", "*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.md1;*.md2;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc"
+		BASS_CTYPE_MUSIC_ASAP, "ASAP", "*.sap;*.cmc;*.cm3;*.cmr;*.cms;*.dmc;*.dlt;*.mpt;*.md1;*.md2;*.mpd;*.rmt;*.tmc;*.tm8;*.tm2;*.fc;*.d15;*.d8"
 	};
 	static const BASS_PLUGININFO plugininfo = { MAKELONG(MAKEWORD(ASAPInfo_VERSION_MINOR, ASAPInfo_VERSION_MAJOR), BASSVERSION), 1, &pluginform };
 	switch (face) {

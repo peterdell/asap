@@ -1,7 +1,7 @@
 /*
  * in_asap.c - ASAP plugin for Winamp
  *
- * Copyright (C) 2005-2025  Piotr Fusik
+ * Copyright (C) 2005-2026  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -458,6 +458,7 @@ static In_Module mod = {
 	"TMC;TM8\0Theta Music Composer 1.x (*.TMC;*.TM8)\0"
 	"TM2\0Theta Music Composer 2.x (*.TM2)\0"
 	"FC\0FutureComposer (*.FC)\0"
+	"D15;D8\0Music ProTracker samples (*.D15;*.D8)\0"
 	"ATR\0Atari 8-bit disk image (*.ATR)\0"
 	,
 	1,    // is_seekable

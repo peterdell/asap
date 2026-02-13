@@ -27,7 +27,7 @@
 			<Launch Condition="NOT WIN32ASAPFOUND" Message="Please uninstall the previous version of ASAP." />
 		<?endif?>
 
-		<?define ASAP_EXTS=sap;cmc;cm3;cmr;cms;dmc;dlt;mpt;md1;md2;mpd;rmt;tmc;tm8;tm2;fc?>
+		<?define ASAP_EXTS=sap;cmc;cm3;cmr;cms;dmc;dlt;mpt;md1;md2;mpd;rmt;tmc;tm8;tm2;fc;d15;d8?>
 		<?define AIMP_EXTS=sap;rmt;fc?>
 		<?define DOUBLECLICK=Double-click SAP or other file in Windows Explorer to play it in?>
 
