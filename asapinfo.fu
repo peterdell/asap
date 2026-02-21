@@ -60,7 +60,7 @@ class DurationParser
 	int Position;
 	nint Length;
 
-	0 .. 9 ParseDigit!(int max)
+	byte ParseDigit!(int max)
 		throws ASAPFormatException
 	{
 		if (Position >= Length)
