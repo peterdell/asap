@@ -240,6 +240,8 @@ static void Pokey_EndFrame(Pokey *self, const PokeyPair *pokeys, int cycle);
 
 static bool Pokey_IsSilent(const Pokey *self);
 
+static int Pokey_GetMute(const Pokey *self);
+
 static void Pokey_Mute(Pokey *self, int mask);
 
 static void Pokey_InitMute(Pokey *self, int cycle);
@@ -449,7 +451,7 @@ static int ASAP_DoFrame(ASAP *self);
 
 static bool ASAP_Do6502Init(ASAP *self, int pc, int a, int x, int y);
 
-static bool ASAP_RestartSong(ASAP *self);
+static bool ASAP_RestartSong(ASAP *self, int muteMask);
 
 static int ASAP_MillisecondsToBlocks(const ASAP *self, int milliseconds);
 
@@ -2658,7 +2660,7 @@ void ASAP_MutePokeyChannels(ASAP *self, int mask)
 	Pokey_Mute(&self->pokeys.extraPokey, mask >> 4);
 }
 
-static bool ASAP_RestartSong(ASAP *self)
+static bool ASAP_RestartSong(ASAP *self, int muteMask)
 {
 	self->nextPlayerCycle = 8388608;
 	self->blocksPlayed = 0;
@@ -2742,7 +2744,7 @@ static bool ASAP_RestartSong(ASAP *self)
 		self->cpu.pc = 53760;
 		break;
 	}
-	ASAP_MutePokeyChannels(self, 0);
+	ASAP_MutePokeyChannels(self, muteMask);
 	self->nextPlayerCycle = 0;
 	return true;
 }
@@ -2753,7 +2755,7 @@ bool ASAP_PlaySong(ASAP *self, int song, int duration)
 		return false;
 	self->currentSong = song;
 	self->currentDuration = duration;
-	return ASAP_RestartSong(self);
+	return ASAP_RestartSong(self, 0);
 }
 
 int ASAP_GetBlocksPlayed(const ASAP *self)
@@ -2775,7 +2777,7 @@ static int ASAP_MillisecondsToBlocks(const ASAP *self, int milliseconds)
 bool ASAP_SeekSample(ASAP *self, int block)
 {
 	if (block < self->blocksPlayed) {
-		if (!ASAP_RestartSong(self))
+		if (!ASAP_RestartSong(self, Pokey_GetMute(&self->pokeys.basePokey) | Pokey_GetMute(&self->pokeys.extraPokey) << 4))
 			return false;
 	}
 	while (self->blocksPlayed + self->pokeys.readySamplesEnd < block) {
@@ -7607,6 +7609,15 @@ static bool Pokey_IsSilent(const Pokey *self)
 		if ((self->channels[c].audc & 15) != 0)
 			return false;
 	return true;
+}
+
+static int Pokey_GetMute(const Pokey *self)
+{
+	int mask = 0;
+	for (int i = 0; i < 4; i++)
+		if ((self->channels[i].mute & 2) != 0)
+			mask |= 1 << i;
+	return mask;
 }
 
 static void Pokey_Mute(Pokey *self, int mask)

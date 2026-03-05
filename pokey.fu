@@ -1,6 +1,6 @@
 // pokey.fu - POKEY chip emulator
 //
-// Copyright (C) 2010-2025  Piotr Fusik
+// Copyright (C) 2010-2026  Piotr Fusik
 //
 // This file is part of ASAP (Another Slight Atari Player),
 // see http://asap.sourceforge.net
@@ -339,6 +339,15 @@ class Pokey
 			if ((c.Audc & 0xf) != 0)
 				return false;
 		return true;
+	}
+
+	internal int GetMute()
+	{
+		int mask = 0;
+		for (int i = 0; i < 4; i++)
+			if ((Channels[i].Mute & PokeyChannel.MuteUser) != 0)
+				mask |= 1 << i;
+		return mask;
 	}
 
 	internal void Mute!(int mask)

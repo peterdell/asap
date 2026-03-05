@@ -529,7 +529,7 @@ public class ASAP
 		Pokeys.ExtraPokey.Mute(mask >> 4);
 	}
 
-	void RestartSong!()
+	void RestartSong!(int muteMask)
 		throws ASAPFormatException
 	{
 		NextPlayerCycle = Pokey.NeverCycle;
@@ -618,7 +618,7 @@ public class ASAP
 #endif
 #endif
 		}
-		MutePokeyChannels(0);
+		MutePokeyChannels(muteMask);
 		NextPlayerCycle = 0;
 	}
 
@@ -634,7 +634,7 @@ public class ASAP
 			throw ASAPArgumentException("Song number out of range");
 		CurrentSong = song;
 		CurrentDuration = duration;
-		RestartSong();
+		RestartSong(0);
 	}
 
 	/// Returns current playback position in blocks.
@@ -656,7 +656,7 @@ public class ASAP
 		throws ASAPFormatException
 	{
 		if (block < BlocksPlayed)
-			RestartSong();
+			RestartSong(Pokeys.BasePokey.GetMute() | Pokeys.ExtraPokey.GetMute() << 4);
 		while (BlocksPlayed + Pokeys.ReadySamplesEnd < block) {
 			BlocksPlayed += Pokeys.ReadySamplesEnd;
 			DoFrame();
