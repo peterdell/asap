@@ -226,9 +226,7 @@ static void Pokey_StartFrame(Pokey *self);
 
 static void Pokey_Initialize(Pokey *self, int sampleRate);
 
-static void Pokey_AddDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta);
-
-static void Pokey_AddPokeyDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta, bool muted);
+static void Pokey_AddDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta, bool muted);
 
 static void Pokey_AddExternalDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta);
 
@@ -243,8 +241,6 @@ static void Pokey_EndFrame(Pokey *self, const PokeyPair *pokeys, int cycle);
 static bool Pokey_IsSilent(const Pokey *self);
 
 static void Pokey_Mute(Pokey *self, int mask);
-
-static void Pokey_EndSongInit(Pokey *self);
 
 static void Pokey_InitMute(Pokey *self, int cycle);
 
@@ -2391,8 +2387,12 @@ static void ASAP_PokeHardware(ASAP *self, int addr, int data)
 		self->nmist = self->cpu.cycle < 28292 ? NmiStatus_ON_V_BLANK : NmiStatus_RESET;
 	}
 	else if ((addr & 65280) == ASAPInfo_GetCovoxAddress(&self->moduleInfo)) {
+		Pokey *pokey;
 		addr &= 3;
-		Pokey *pokey = addr == 0 || addr == 3 ? &self->pokeys.basePokey : &self->pokeys.extraPokey;
+		if (addr == 0 || addr == 3)
+			pokey = &self->pokeys.basePokey;
+		else
+			pokey = &self->pokeys.extraPokey;
 		int delta = data - self->covox[addr];
 		if (delta != 0) {
 			Pokey_AddExternalDelta(pokey, &self->pokeys, self->cpu.cycle, delta << 17);
@@ -2652,6 +2652,12 @@ static bool ASAP_Do6502Init(ASAP *self, int pc, int a, int x, int y)
 	return false;
 }
 
+void ASAP_MutePokeyChannels(ASAP *self, int mask)
+{
+	Pokey_Mute(&self->pokeys.basePokey, mask);
+	Pokey_Mute(&self->pokeys.extraPokey, mask >> 4);
+}
+
 static bool ASAP_RestartSong(ASAP *self)
 {
 	self->nextPlayerCycle = 8388608;
@@ -2665,6 +2671,7 @@ static bool ASAP_RestartSong(ASAP *self)
 	self->covox[2] = 128;
 	self->covox[3] = 128;
 	PokeyPair_Initialize(&self->pokeys, ASAPInfo_IsNtsc(&self->moduleInfo), ASAPInfo_GetChannels(&self->moduleInfo) > 1, self->currentSampleRate);
+	ASAP_MutePokeyChannels(self, 255);
 	int player = self->moduleInfo.player;
 	int music = ASAPInfo_GetMusicAddress(&self->moduleInfo);
 	switch (self->moduleInfo.type) {
@@ -2735,8 +2742,7 @@ static bool ASAP_RestartSong(ASAP *self)
 		self->cpu.pc = 53760;
 		break;
 	}
-	Pokey_EndSongInit(&self->pokeys.basePokey);
-	Pokey_EndSongInit(&self->pokeys.extraPokey);
+	ASAP_MutePokeyChannels(self, 0);
 	self->nextPlayerCycle = 0;
 	return true;
 }
@@ -2748,12 +2754,6 @@ bool ASAP_PlaySong(ASAP *self, int song, int duration)
 	self->currentSong = song;
 	self->currentDuration = duration;
 	return ASAP_RestartSong(self);
-}
-
-void ASAP_MutePokeyChannels(ASAP *self, int mask)
-{
-	Pokey_Mute(&self->pokeys.basePokey, mask);
-	Pokey_Mute(&self->pokeys.extraPokey, mask >> 4);
 }
 
 int ASAP_GetBlocksPlayed(const ASAP *self)
@@ -7381,14 +7381,14 @@ static void PokeyChannel_Initialize(PokeyChannel *self)
 	self->periodCycles = 28;
 	self->tickCycle = 8388608;
 	self->timerCycle = 8388608;
-	self->mute = 8;
+	self->mute = 0;
 	self->out = 0;
 	self->delta = 0;
 }
 
 static void PokeyChannel_AddDelta(const PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle, int delta)
 {
-	Pokey_AddPokeyDelta(pokey, pokeys, cycle, delta, (self->mute & 10) != 0);
+	Pokey_AddDelta(pokey, pokeys, cycle, delta, (self->mute & 2) != 0);
 }
 
 static void PokeyChannel_Slope(PokeyChannel *self, Pokey *pokey, const PokeyPair *pokeys, int cycle)
@@ -7527,7 +7527,17 @@ static void Pokey_Initialize(Pokey *self, int sampleRate)
 	Pokey_StartFrame(self);
 }
 
-static void Pokey_AddDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta)
+static void Pokey_AddDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta, bool muted)
+{
+	self->sumDACInputs += delta;
+	if (muted)
+		return;
+	int newOutput = Pokey_COMPRESSED_SUMS[self->sumDACInputs] << 16;
+	Pokey_AddExternalDelta(self, pokeys, cycle, newOutput - self->sumDACOutputs);
+	self->sumDACOutputs = newOutput;
+}
+
+static void Pokey_AddExternalDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta)
 {
 	if (delta == 0)
 		return;
@@ -7537,22 +7547,6 @@ static void Pokey_AddDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int 
 	delta >>= 14;
 	for (int j = 0; j < 32; j++)
 		self->deltaBuffer[i + j] += delta * pokeys->sincLookup[fraction][j];
-}
-
-static void Pokey_AddPokeyDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta, bool muted)
-{
-	self->sumDACInputs += delta;
-	if (muted)
-		return;
-	int newOutput = Pokey_COMPRESSED_SUMS[self->sumDACInputs] << 16;
-	Pokey_AddDelta(self, pokeys, cycle, newOutput - self->sumDACOutputs);
-	self->sumDACOutputs = newOutput;
-}
-
-static void Pokey_AddExternalDelta(Pokey *self, const PokeyPair *pokeys, int cycle, int delta)
-{
-	if ((self->channels[0].mute & 8) == 0)
-		Pokey_AddDelta(self, pokeys, cycle, delta);
 }
 
 static void Pokey_GenerateUntilCycle(Pokey *self, const PokeyPair *pokeys, int cycleLimit)
@@ -7619,12 +7613,6 @@ static void Pokey_Mute(Pokey *self, int mask)
 {
 	for (int i = 0; i < 4; i++)
 		PokeyChannel_SetMute(&self->channels[i], (mask & 1 << i) != 0, 2, 0);
-}
-
-static void Pokey_EndSongInit(Pokey *self)
-{
-	for (int channel = 0; channel < 4; channel++)
-		PokeyChannel_SetMute(self->channels + channel, false, 8, 0);
 }
 
 static void Pokey_InitMute(Pokey *self, int cycle)
