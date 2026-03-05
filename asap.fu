@@ -214,12 +214,8 @@ public class ASAP
 			Nmist = Cpu.Cycle < 28292 ? NmiStatus.OnVBlank : NmiStatus.Reset;
 		}
 		else if ((addr & 0xff00) == ModuleInfo.GetCovoxAddress()) {
-			Pokey! pokey;
 			addr &= 3;
-			if (addr == 0 || addr == 3)
-				pokey = Pokeys.BasePokey;
-			else
-				pokey = Pokeys.ExtraPokey;
+			Pokey! pokey = addr == 0 || addr == 3 ? Pokeys.BasePokey : Pokeys.ExtraPokey;
 			int delta = data - Covox[addr];
 			if (delta != 0) {
 				const int DeltaShiftCOVOX = 17;

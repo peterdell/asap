@@ -2389,12 +2389,8 @@ static void ASAP_PokeHardware(ASAP *self, int addr, int data)
 		self->nmist = self->cpu.cycle < 28292 ? NmiStatus_ON_V_BLANK : NmiStatus_RESET;
 	}
 	else if ((addr & 65280) == ASAPInfo_GetCovoxAddress(&self->moduleInfo)) {
-		Pokey *pokey;
 		addr &= 3;
-		if (addr == 0 || addr == 3)
-			pokey = &self->pokeys.basePokey;
-		else
-			pokey = &self->pokeys.extraPokey;
+		Pokey *pokey = addr == 0 || addr == 3 ? &self->pokeys.basePokey : &self->pokeys.extraPokey;
 		int delta = data - self->covox[addr];
 		if (delta != 0) {
 			Pokey_AddExternalDelta(pokey, &self->pokeys, self->cpu.cycle, delta << 17);
