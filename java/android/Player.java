@@ -1,7 +1,7 @@
 /*
  * Player.java - ASAP for Android
  *
- * Copyright (C) 2010-2026  Piotr Fusik
+ * Copyright (C) 2010-2023  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -211,7 +211,7 @@ public class Player extends ListActivity
 					findViewById(R.id.share).setVisibility(View.GONE);
 				}
 				((FileInfoAdapter) getListAdapter()).setPlayingFilename(playingFilename);
-				showTag(R.id.playing_name, metadata.getString(PlayerService.METADATA_KEY_RAW_TITLE));
+				showTag(R.id.playing_name, metadata.getString(MediaMetadata.METADATA_KEY_TITLE));
 				showTag(R.id.playing_author, metadata.getString(MediaMetadata.METADATA_KEY_ARTIST));
 				showTag(R.id.playing_date, metadata.getString(MediaMetadata.METADATA_KEY_DATE));
 				int songs = (int) metadata.getLong(MediaMetadata.METADATA_KEY_NUM_TRACKS);

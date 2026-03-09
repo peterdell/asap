@@ -188,7 +188,6 @@ public class PlayerService extends MediaBrowserService implements Runnable, Audi
 	private Thread thread = null;
 
 	static final String METADATA_KEY_CHANNELS = "asap.media.metadata.CHANNELS";
-	static final String METADATA_KEY_RAW_TITLE = "asap.media.metadata.RAW_TITLE";
 
 	private synchronized void setCommand(int command)
 	{
@@ -304,8 +303,7 @@ public class PlayerService extends MediaBrowserService implements Runnable, Audi
 		MediaMetadata.Builder metadata = new MediaMetadata.Builder()
 			.putString(MediaMetadata.METADATA_KEY_MEDIA_URI, uri.toString())
 			.putLong(METADATA_KEY_CHANNELS, info.getChannels())
-			.putString(MediaMetadata.METADATA_KEY_TITLE, getDisplayTitle())
-			.putString(METADATA_KEY_RAW_TITLE, info.getTitleOrFilename());
+			.putString(MediaMetadata.METADATA_KEY_TITLE, info.getTitleOrFilename());
 		String author = info.getAuthor();
 		if (author.length() > 0)
 			metadata.putString(MediaMetadata.METADATA_KEY_ARTIST, author);
