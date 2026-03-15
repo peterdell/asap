@@ -4,20 +4,14 @@ ACIDSAP = ../Acid800/out/Release/AcidSAP/standalone
 
 TESTS = antic_nmires antic_nmist antic_vcount_ntsc antic_vcount_pal antic_wsync cpu_anx cpu_decimal cpu_las cpu_shx gtia_consol pokey_irqst pokey_pot pokey_potst pokey_random pokey_timerirq
 TESTS_SAP = $(TESTS:%=test/%.sap)
+TESTS_ACIDSAP = $(wildcard $(ACIDSAP)/*.sap)
+INC_PASSED = ((passed++))
 
 check: asapscan $(TESTS_SAP)
-	@-test -d $(ACIDSAP) && export passed=0 total=0 && \
-		for name in $(ACIDSAP)/*.sap; do \
-			echo -n \*\ ; ./asapscan -a "$$name"; \
-			passed=$$(($$passed+!$$?)); total=$$(($$total+1)); \
-		done && \
-		echo PASSED $$passed of $$total AcidSAP tests, 11 expected
-	@export passed=0 total=0 && \
-		for name in $(TESTS_SAP); do \
-			echo -n \*\ ; ./asapscan -a "$$name"; \
-			passed=$$(($$passed+!$$?)); total=$$(($$total+1)); \
-		done && \
-		echo PASSED $$passed of $$total ASAP tests, 9 expected
+	@$(TESTS_SAP:%=./asapscan -a % && $(INC_PASSED);) \
+		echo PASSED $$passed of $(words $(TESTS_SAP)) ASAP tests, 9 expected
+	@test -d $(ACIDSAP) && $(TESTS_ACIDSAP:%=./asapscan -a % && $(INC_PASSED);) \
+		echo PASSED $$passed of $(words $(TESTS_ACIDSAP)) AcidSAP tests, 11 expected || true
 .PHONY: check
 
 test/%.sap: $(srcdir)test/%.asx
