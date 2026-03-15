@@ -11,13 +11,13 @@ check: asapscan $(TESTS_SAP)
 			echo -n \*\ ; ./asapscan -a "$$name"; \
 			passed=$$(($$passed+!$$?)); total=$$(($$total+1)); \
 		done && \
-		echo PASSED $$passed of $$total tests
+		echo PASSED $$passed of $$total AcidSAP tests, 11 expected
 	@export passed=0 total=0 && \
 		for name in $(TESTS_SAP); do \
 			echo -n \*\ ; ./asapscan -a "$$name"; \
 			passed=$$(($$passed+!$$?)); total=$$(($$total+1)); \
 		done && \
-		echo PASSED $$passed of $$total tests
+		echo PASSED $$passed of $$total ASAP tests, 9 expected
 .PHONY: check
 
 test/%.sap: $(srcdir)test/%.asx
