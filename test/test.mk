@@ -5,18 +5,18 @@ ACIDSAP = ../Acid800/out/Release/AcidSAP/standalone
 TESTS = antic_nmires antic_nmist antic_vcount_ntsc antic_vcount_pal antic_wsync cpu_anx cpu_decimal cpu_las cpu_shx gtia_consol pokey_irqst pokey_pot pokey_potst pokey_random pokey_timerirq
 TESTS_SAP = $(TESTS:%=test/%.sap)
 
-check: asapscan $(ACIDSAP) $(TESTS_SAP)
-	@export passed=0 total=0; \
+check: asapscan $(TESTS_SAP)
+	@-test -d $(ACIDSAP) && export passed=0 total=0 && \
 		for name in $(ACIDSAP)/*.sap; do \
 			echo -n \*\ ; ./asapscan -a "$$name"; \
 			passed=$$(($$passed+!$$?)); total=$$(($$total+1)); \
-		done; \
+		done && \
 		echo PASSED $$passed of $$total tests
-	@export passed=0 total=0; \
+	@export passed=0 total=0 && \
 		for name in $(TESTS_SAP); do \
 			echo -n \*\ ; ./asapscan -a "$$name"; \
 			passed=$$(($$passed+!$$?)); total=$$(($$total+1)); \
-		done; \
+		done && \
 		echo PASSED $$passed of $$total tests
 .PHONY: check
 
