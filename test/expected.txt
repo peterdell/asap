@@ -60,6 +60,6 @@ b4016347f4d2de33c709056fa8ff92f2 *test/actual/relocated/barymag.md1
 e4c2599aab236b4547ca5ace13cd39d6 *test/actual/relocated/fred.tm2
 575c55a4f640217376a3be0e9e330f6c *test/actual/relocated/kol5.cm3
 c63e3af50a92ef5e0821bcfcaeea4294 *test/actual/relocated/spirit1.md2
-dd2304ff28a0e440451cde9c57369629 *test/actual/relocated/title.cms
+a5a5c1cd41fd9329dffd1db4b80aa4b3 *test/actual/relocated/title.cms
 37b55d6b5c96c86e8c11c203edb65608 *test/actual/relocated/ultrance.tmc
 0a811cc1377f75afbc71f2ecc46f04fc *test/actual/relocated/wybieraj.dlt

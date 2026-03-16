@@ -169,7 +169,7 @@ public class ASAPInfo
 	internal ASAPModuleType Type;
 	internal ASAPModuleType OriginalType;
 	int Fastplay;
-	int Music;
+	internal int Music;
 	int Init;
 	internal int Player;
 	int CovoxAddr;
@@ -1246,13 +1246,16 @@ public class ASAPInfo
 	static bool ValidateSap(byte[] module, int moduleLen)
 		=> moduleLen >= 30 && HasStringAt(module, 0, "SAP\r\n");
 
+	internal int GetFirstBlockLen(byte[] module)
+		=> GetWord(module, HeaderLen + 4) - GetWord(module, HeaderLen + 2) + 7;
+
 	internal const int RmtInit = 0xc80;
 
 	internal int GetRmtSapOffset(byte[] module, int moduleLen)
 	{
 		if (Player != 0x3403)
 			return -1;
-		int offset = HeaderLen + GetWord(module, HeaderLen + 4) - GetWord(module, HeaderLen + 2) + 7;
+		int offset = HeaderLen + GetFirstBlockLen(module);
 		if (offset + 6 >= moduleLen || module[offset + 4] != 'R' || module[offset + 5] != 'M' || module[offset + 6] != 'T')
 			return -1;
 		return offset;
