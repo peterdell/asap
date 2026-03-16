@@ -7,12 +7,23 @@ TESTS_SAP = $(TESTS:%=test/%.sap)
 TESTS_ACIDSAP = $(wildcard $(ACIDSAP)/*.sap)
 INC_PASSED = ((passed++))
 
-check: asapscan $(TESTS_SAP)
+check test: test/conv test/acid
+.PHONY: check test
+
+test/conv: asapconv
+	mkdir -p test/actual
+	./asapconv -o test/actual/.sap $(filter-out %.d15, $(filter-out %.d8, $(wildcard examples/*)))
+	./asapconv -o test/actual/.%e examples/{Cropky,Near,Pneumatic_Driller,Sill_Of_Destiny}.sap
+	./asapconv -o test/actual/.xex $(filter-out %.d15, $(filter-out %.d8, $(filter-out %/Ucieczka_w_Nicosc.sap, $(wildcard examples/*))))
+	md5sum test/actual/* | diff -u test/expected.txt -
+.PHONY: test/conv
+
+test/acid: asapscan $(TESTS_SAP)
 	@$(TESTS_SAP:%=./asapscan -a % && $(INC_PASSED);) \
 		echo PASSED $$passed of $(words $(TESTS_SAP)) ASAP tests, 9 expected
 	@test -d $(ACIDSAP) && $(TESTS_ACIDSAP:%=./asapscan -a % && $(INC_PASSED);) \
 		echo PASSED $$passed of $(words $(TESTS_ACIDSAP)) AcidSAP tests, 11 expected || true
-.PHONY: check
+.PHONY: test/acid
 
 test/%.sap: $(srcdir)test/%.asx
 	$(XASM) -d SAP=1
