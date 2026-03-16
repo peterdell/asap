@@ -1,7 +1,7 @@
 /*
  * asap-stdio.c - stdio loader for ASAP
  *
- * Copyright (C) 2025  Piotr Fusik
+ * Copyright (C) 2025-2026  Piotr Fusik
  *
  * This file is part of ASAP (Another Slight Atari Player),
  * see http://asap.sourceforge.net
@@ -39,7 +39,7 @@ static int loader_load(const ASAPFileLoader *self, const char *filename, uint8_t
 	FILE *fp = fopen(filename, "rb");
 	if (fp == NULL)
 		return -1;
-	length = fread(buffer, 1, length, fp);
+	length = (int) fread(buffer, 1, length, fp);
 	fclose(fp);
 	return length;
 }
