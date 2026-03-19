@@ -301,6 +301,54 @@ public class ASAPWriter
 		WriteBytes(module, info.HeaderLen, moduleLen);
 	}
 
+	/// Writes a native module, possibly extracting it from a SAP file.
+	byte[] WriteNative!(
+		/// Source file information, optionally with the address changed.
+		ASAPInfo info,
+		/// Contents of the source file.
+		byte[] module,
+		/// Length of the source file.
+		int moduleLen,
+		bool rmtNames)
+		throws ASAPConversionException
+	{
+		ASAPModuleTransfer() trans = { Source = module, Output = Output, OutputOffset = OutputLen };
+		switch (info.Type) {
+		case ASAPModuleType.SapB:
+		case ASAPModuleType.SapC:
+		case ASAPModuleType.SapD:
+			// SAP -> native
+			int offset = info.GetRmtSapOffset(module, moduleLen);
+			if (offset > 0) {
+				// RMT-generated SAP -> RMT
+				trans.SourceOffset = offset - 2;
+				trans.TransferModule(info, moduleLen, true, false);
+				break;
+			}
+			trans.SourceOffset = info.HeaderLen;
+			int blockLen = info.GetFirstBlockLen(module);
+			if (blockLen < 7 || trans.SourceOffset + blockLen >= moduleLen)
+				throw ASAPConversionException("Cannot extract module from SAP");
+			if (info.OriginalType == ASAPModuleType.Fc)
+				trans.WriteBytes(module, trans.SourceOffset + 6, blockLen - 6); // SAP -> FC
+			else
+				trans.TransferModule(info, trans.SourceOffset + blockLen, true, false); // SAP -> native
+			break;
+		case ASAPModuleType.Fc:
+		case ASAPModuleType.D15: // TODO: relocate
+			// FC -> FC, D15 -> D15
+			trans.WriteBytes(module, 0, moduleLen);
+			break;
+		default:
+			// native -> native
+			trans.SourceOffset = 0;
+			trans.TransferModule(info, moduleLen, true, rmtNames);
+			break;
+		}
+		OutputLen = trans.OutputOffset;
+		return Output;
+	}
+
 	ushort WriteExecutableHeaderForSongPos!(bool toSap, ASAPInfo info, int type, int player, int codeForOneSong, int codeForManySongs, int playerOffset)
 		throws ASAPConversionException
 	{
@@ -381,8 +429,7 @@ public class ASAPWriter
 			Player = player;
 			if (toSap)
 				WriteSapHeader(info, 'C');
-			WriteWord(0xffff); // some modules start with zeros
-			WriteBytes(module, 2, moduleLen);
+			WriteNative(info, module, moduleLen, false);
 			WriteBytes(playerRoutine, 2, playerLastByte - player + 7);
 			if (!toSap)
 				WriteCmcInit(info);
@@ -413,7 +460,7 @@ public class ASAPWriter
 			break;
 		case ASAPModuleType.Mpt:
 			startAddr = WriteExecutableHeaderForSongPos(toSap, info, 'B', player, 13, 17, 3);
-			WriteBytes(module, 0, moduleLen);
+			WriteNative(info, module, moduleLen, false);
 			WriteWord(startAddr);
 			WriteWord(playerLastByte);
 			WriteMptInit(info, player);
@@ -432,7 +479,7 @@ public class ASAPWriter
 
 			int codeForOneSong = info.Type == ASAPModuleType.Md1 ? 29 : 27;
 			startAddr = WriteExecutableHeaderForSongPos(toSap, info, 'D', player, codeForOneSong, codeForOneSong + 4, 3);
-			WriteBytes(module, 0, moduleLen);
+			WriteNative(info, module, moduleLen, false);
 			WriteByte(0xe0); WriteByte(samplesPage);
 			WriteByte(0xff); WriteByte(samplesPage + (samples.ContentLength >> 8));
 			WriteBytes(samples.Content, 0, samples.ContentLength);
@@ -459,7 +506,7 @@ public class ASAPWriter
 			Player = 0x603;
 			if (toSap)
 				WriteSapHeader(info, 'B');
-			WriteBytes(module, 0, ASAPInfo.GetWord(module, 4) - music + 7);
+			WriteNative(info, module, moduleLen, false);
 			WriteWord(ASAPInfo.RmtInit);
 			if (info.GetSongs() != 1) {
 				WriteWord(ASAPInfo.RmtInit + 10 + info.GetSongs());
@@ -487,7 +534,7 @@ public class ASAPWriter
 				Init -= 3;
 			if (toSap)
 				WriteSapHeader(info, 'B');
-			WriteBytes(module, 0, moduleLen);
+			WriteNative(info, module, moduleLen, false);
 			WriteWord(Init);
 			WriteWord(playerLastByte);
 			if (info.GetSongs() != 1)
@@ -533,7 +580,7 @@ public class ASAPWriter
 			Player = 0x803;
 			if (toSap)
 				WriteSapHeader(info, 'B');
-			WriteBytes(module, 0, moduleLen);
+			WriteNative(info, module, moduleLen, false);
 			WriteWord(tm2Init);
 			if (info.GetSongs() != 1) {
 				WriteWord(tm2Init + 16);
@@ -706,53 +753,6 @@ public class ASAPWriter
 		WriteBytes(resource<byte[]>("xexinfo.obx"), 6, resource<byte[]>("xexinfo.obx").Length);
 	}
 
-	/// Writes the a native module, possibly extracting it from a SAP file.
-	public byte[] WriteNative!(
-		/// Source file information, optionally with the address changed.
-		ASAPInfo info,
-		/// Contents of the source file.
-		byte[] module,
-		/// Length of the source file.
-		int moduleLen)
-		throws ASAPConversionException
-	{
-		ASAPModuleTransfer() trans = { Source = module, Output = Output, OutputOffset = 0 };
-		switch (info.Type) {
-		case ASAPModuleType.SapB:
-		case ASAPModuleType.SapC:
-		case ASAPModuleType.SapD:
-			// SAP -> native
-			int offset = info.GetRmtSapOffset(module, moduleLen);
-			if (offset > 0) {
-				// RMT-generated SAP -> RMT
-				trans.SourceOffset = offset - 2;
-				trans.TransferModule(info, moduleLen, true);
-				break;
-			}
-			trans.SourceOffset = info.HeaderLen;
-			int blockLen = info.GetFirstBlockLen(module);
-			if (blockLen < 7 || trans.SourceOffset + blockLen >= moduleLen)
-				throw ASAPConversionException("Cannot extract module from SAP");
-			if (info.OriginalType == ASAPModuleType.Fc)
-				trans.WriteBytes(module, trans.SourceOffset + 6, blockLen - 6); // SAP -> FC
-			else
-				trans.TransferModule(info, trans.SourceOffset + blockLen, true); // SAP -> native
-			break;
-		case ASAPModuleType.Fc:
-		case ASAPModuleType.D15: // TODO: relocate
-			// FC -> FC, D15 -> D15
-			trans.WriteBytes(module, 0, moduleLen);
-			break;
-		default:
-			// native -> native
-			trans.SourceOffset = 0;
-			trans.TransferModule(info, moduleLen, true);
-			break;
-		}
-		OutputLen = trans.OutputOffset;
-		return Output;
-	}
-
 	/// Writes the given module in the SAP format.
 	public byte[] WriteSap!(
 		/// Source file information, with metadata updated for the output.
@@ -875,7 +875,8 @@ public class ASAPWriter
 				if (destExt == packedPossibleExt
 				 || (destExt == ASAPInfo.PackExt("TM8") && packedPossibleExt == ASAPInfo.PackExt("TMC"))) {
 					// * -> native
-					WriteNative(info, module, moduleLen);
+					OutputLen = 0;
+					WriteNative(info, module, moduleLen, true);
 					Save(targetFilename, Output, 0, OutputLen);
 					if (info.Type == ASAPModuleType.SapD) {
 						switch (info.OriginalType) {

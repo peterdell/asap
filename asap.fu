@@ -86,13 +86,13 @@ class ASAPModuleTransfer
 		}
 	}
 
-	internal void TransferModule!(ASAPInfo info, int sourceEnd, bool outputFile)
+	internal void TransferModule!(ASAPInfo info, int sourceEnd, bool header, bool rmtNames)
 	{
 		SourceOffset += 2;
 		ushort startAddr = ReadWord();
 		ushort endAddr = ReadWord();
 		AddressDiff = info.Music < 0 ? 0 : info.Music - startAddr;
-		if (outputFile) {
+		if (header) {
 			WriteWord(0xffff);
 			WriteWord(startAddr + AddressDiff);
 			WriteWord(endAddr + AddressDiff);
@@ -104,7 +104,7 @@ class ASAPModuleTransfer
 		case ASAPModuleType.Cms:
 			// CMC/SAP -> CMC
 			Copy(20); // CMC header
-			RelocateLowHigh(64); // patterns
+			RelocateLowHigh(64); // pattern addresses
 			break;
 		case ASAPModuleType.Dlt:
 			// DLT/SAP -> DLT
@@ -113,9 +113,60 @@ class ASAPModuleTransfer
 		case ASAPModuleType.Md1:
 		case ASAPModuleType.Md2:
 			// MPT/SAP -> MPT
-			RelocateWords(32 + 64); // instruments, patterns
+			int[5] trackAddr;
+			trackAddr[4] = 0;
+			// instrument addresses, pattern addresses
+			for (int i = 0; i < 32 + 64; i++) {
+				int address = ReadWord();
+				if (address != 0) {
+					address += AddressDiff;
+					if (trackAddr[4] == 0)
+						trackAddr[4] = address;
+				}
+				WriteWord(address);
+			}
+			if (trackAddr[4] == 0)
+				trackAddr[4] = endAddr + 1 + AddressDiff;
 			Copy(256); // frequency tables
-			RelocateLowHigh(4); // tracks
+			// track addresses
+			for (int ch = 0; ch < 4; ch++) {
+				int address = Source[SourceOffset + ch] + (Source[SourceOffset + 4 + ch] << 8) + AddressDiff;
+				trackAddr[ch] = address;
+				WriteByte(address & 0xff);
+			}
+			for (int ch = 0; ch < 4; ch++)
+				WriteByte(trackAddr[ch] >> 8);
+			SourceOffset += 8;
+			// tracks
+			if (info.MptSongBugExtra != 0) {
+				// In this format tracks are saved one after another.
+				// Track 0 often ends with a jump instruction "FF-target".
+				// The remaining tracks on this row are ignored, but if they are
+				// "FF-FF", the tracker saves a corrupt file (yet loads it correctly).
+				// The addresses (including the DOS header) are calculated
+				// as if the tracks are stored without their trailing "FF-FF" rows.
+				// However, the composer writes all tracks of same size as track 0.
+				// Here we work around this problem.
+				// I made a similar workaround in SAP Maker 5.0 in 2005,
+				// but it was faulty: SAP Maker applied the fix two bytes early,
+				// which led to a loss of the last row in tracks 1-3.
+				// "FF-FF" was preserved instead and caused a stop instead of the loop.
+				int track0Len = trackAddr[1] - trackAddr[0];
+				Copy(2 + track0Len); // pattern len, tempo, track 0
+				for (int ch = 1; ch < 4; ch++) {
+					int trackLen = trackAddr[ch + 1] - trackAddr[ch];
+					if (trackLen <= track0Len) {
+						Copy(trackLen);
+						SourceOffset += track0Len - trackLen; // strip the extra "FF-FF"
+					}
+					else {
+						// unlikely case
+						Copy(track0Len);
+						for ( ; trackLen > track0Len; trackLen--)
+							WriteByte(0xff); // pad with "FF-FF"
+					}
+				}
+			}
 			break;
 		case ASAPModuleType.Rmt:
 			// RMT/SAP -> RMT
@@ -125,8 +176,8 @@ class ASAPModuleTransfer
 			ushort patternLowAddr = ASAPInfo.GetWord(Source, startOffset + 10);
 			ushort patternHighAddr = ASAPInfo.GetWord(Source, startOffset + 12);
 			ushort songAddr = ASAPInfo.GetWord(Source, startOffset + 14);
-			RelocateWords((patternLowAddr - startAddr - 8) >> 1); // 4 pointers, instruments
-			RelocateLowHigh(patternHighAddr - patternLowAddr); // patterns
+			RelocateWords((patternLowAddr - startAddr - 8) >> 1); // 4 pointers, instrument addresses
+			RelocateLowHigh(patternHighAddr - patternLowAddr); // pattern addresses
 			Copy(songAddr - startAddr + startOffset - SourceOffset); // patterns
 			int songEnd = endAddr + 1 - startAddr + startOffset;
 			while (SourceOffset < songEnd) {
@@ -139,7 +190,7 @@ class ASAPModuleTransfer
 				}
 				Copy(songLineLen);
 			}
-			if (!outputFile)
+			if (!rmtNames)
 				return;
 			if (sourceEnd >= songEnd + 5)
 				RelocateWords(2); // DOS header of text info: title and instrument names
@@ -147,15 +198,15 @@ class ASAPModuleTransfer
 		case ASAPModuleType.Tmc:
 			// TMC/SAP -> TMC
 			Copy(32); // TMC header
-			RelocateLowHigh(64); // instruments
-			RelocateLowHigh(128); // patterns
+			RelocateLowHigh(64); // instrument addresses
+			RelocateLowHigh(128); // pattern addresses
 			break;
 		case ASAPModuleType.Tm2:
 			// TM2/SAP -> TM2
 			Copy(128); // TM2 header
-			RelocateBytes(0, 0x280, 128, 0); // instruments/low
-			RelocateLowHigh(256); // patterns
-			RelocateBytes(-0x280, 0, 128, 8); // instruments/high
+			RelocateBytes(0, 0x280, 128, 0); // instrument addresses low
+			RelocateLowHigh(256); // pattern addresses
+			RelocateBytes(-0x280, 0, 128, 8); // instruments addresses high
 			break;
 		default:
 			assert false;
@@ -612,7 +663,7 @@ public class ASAP
 				}
 #endif
 				ASAPModuleTransfer() trans = { Source = module, SourceOffset = 0, Output = Cpu.Memory, OutputOffset = music };
-				trans.TransferModule(ModuleInfo, moduleLen, false);
+				trans.TransferModule(ModuleInfo, moduleLen, false, false);
 			}
 			int playerLastByte = ASAPInfo.GetWord(playerRoutine, 4);
 			playerRoutine.CopyTo(6, Cpu.Memory, player, playerLastByte + 1 - player);

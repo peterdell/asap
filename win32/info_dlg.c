@@ -236,15 +236,19 @@ static void updateTech(void)
 	}
 	i = ASAPInfo_GetSapHeaderLength(edited_info);
 	if (i >= 0) {
-		while (p < buf + sizeof(buf) - 17 && i + 4 < saved_module_len) {
+		while (p < buf + sizeof(buf) - 17 && i < saved_module_len) {
+			if (saved_module_len - i <= 4) {
+				sprintf(p, "GARBAGE %d\r\n", saved_module_len - i);
+				break;
+			}
 			int start = saved_module[i] + (saved_module[i + 1] << 8);
 			if (start == 0xffff) {
 				i += 2;
 				start = saved_module[i] + (saved_module[i + 1] << 8);
 			}
 			int end = saved_module[i + 2] + (saved_module[i + 3] << 8);
-			p += sprintf(p, "LOAD %04X-%04X\r\n", start, end);
-			i += 5 + end - start;
+			i += 5 + ((end - start) & 0xffff);
+			p += sprintf(p, "LOAD %04X-%04X%s\r\n", start, end, i > saved_module_len ? " TRUNCATED" : "");
 		}
 	}
 	chomp(buf);

@@ -562,16 +562,6 @@ int ASAPWriter_DurationToString(uint8_t *result, int value);
 void ASAPWriter_SetInput(ASAPWriter *self, const char *sourceFilename, const ASAPFileLoader *loader);
 
 /**
- * Writes the a native module, possibly extracting it from a SAP file.
- * @param self This <code>ASAPWriter</code>.
- * @param info Source file information, optionally with the address changed.
- * @param module Contents of the source file.
- * @param moduleLen Length of the source file.
- * @return <code>NULL</code> on error.
- */
-uint8_t const *ASAPWriter_WriteNative(ASAPWriter *self, const ASAPInfo *info, uint8_t const *module, int moduleLen);
-
-/**
  * Writes the given module in the SAP format.
  * @param self This <code>ASAPWriter</code>.
  * @param info Source file information, with metadata updated for the output.

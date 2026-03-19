@@ -36,6 +36,8 @@ fd034badb40329244e2cd2916ee7cdfb *test/actual/barymag.sap
 6e651173dc3b1500c20835b432d53509 *test/actual/fred.xex
 f3be6ca3bd799e3658230a41cb57e2d6 *test/actual/kol5.sap
 c757869052549bf2e64475bd66dc5a9a *test/actual/kol5.xex
+643cadf38262bd469875975f8b983bfc *test/actual/lifetime.sap
+a81a3add83dc43ae617d97b88341c432 *test/actual/lifetime.xex
 a82109051c3fe3f1247e667b68a8ed60 *test/actual/spirit1.sap
 762a02adf25da0d054fa43480a618a05 *test/actual/spirit1.xex
 fc6cefcca66e9e21dc87eb6e10397208 *test/actual/title.sap
@@ -59,6 +61,7 @@ d23bac3aabb85e5834bedbca423b63d9 *test/actual/relocated/aurora_s.rmt
 b4016347f4d2de33c709056fa8ff92f2 *test/actual/relocated/barymag.md1
 e4c2599aab236b4547ca5ace13cd39d6 *test/actual/relocated/fred.tm2
 575c55a4f640217376a3be0e9e330f6c *test/actual/relocated/kol5.cm3
+33d79d6144e944547b18233681fb7622 *test/actual/relocated/lifetime.mpt
 c63e3af50a92ef5e0821bcfcaeea4294 *test/actual/relocated/spirit1.md2
 a5a5c1cd41fd9329dffd1db4b80aa4b3 *test/actual/relocated/title.cms
 37b55d6b5c96c86e8c11c203edb65608 *test/actual/relocated/ultrance.tmc
