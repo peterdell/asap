@@ -12,12 +12,6 @@ ZIPALIGN = $(DO)$(ANDROID_BUILD_TOOLS)/zipalign
 ADB = $(ANDROID_SDK)/platform-tools/adb
 ANDROID = $(ANDROID_SDK)/tools/android.bat
 
-# NDK is only needed for the command-line asapconv
-# It ended up in this Makefile even though it's not Java
-ANDROID_NDK = C:/bin/android-ndk-r8c
-ANDROID_NDK_PLATFORM = $(ANDROID_NDK)/platforms/android-3/arch-arm
-ANDROID_CC = $(DO)$(ANDROID_NDK)/toolchains/arm-linux-androideabi-4.6/prebuilt/windows/bin/arm-linux-androideabi-gcc --sysroot=$(ANDROID_NDK_PLATFORM) -s -O2 -Wall -o $@ $(INCLUDEOPTS) $(filter %.c,$^)
-
 # no user-configurable paths below this line
 
 ifndef DO
@@ -115,7 +109,3 @@ CLEAN += java/android/res/drawable-port-xhdpi/stereo.jpg
 android-push-asapconv: java/android/asapconv
 	$(ADB) -d push java/android/asapconv /data/local/tmp/
 .PHONY: android-push-asapconv
-
-java/android/asapconv: $(call src,asapconv.c asap.[ch])
-	$(ANDROID_CC)
-CLEAN += java/android/asapconv
