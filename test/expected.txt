@@ -38,6 +38,14 @@ f3be6ca3bd799e3658230a41cb57e2d6 *test/actual/kol5.sap
 c757869052549bf2e64475bd66dc5a9a *test/actual/kol5.xex
 643cadf38262bd469875975f8b983bfc *test/actual/lifetime.sap
 a81a3add83dc43ae617d97b88341c432 *test/actual/lifetime.xex
+a82109051c3fe3f1247e667b68a8ed60 *test/actual/spirit1.sap
+762a02adf25da0d054fa43480a618a05 *test/actual/spirit1.xex
+fc6cefcca66e9e21dc87eb6e10397208 *test/actual/title.sap
+963531f7efe05deead6a997bb7c592c7 *test/actual/title.xex
+3a590752254e5e2c45fb4ac92c675b62 *test/actual/ultrance.sap
+e1e2803ff71a284c7018053d6161e8fa *test/actual/ultrance.xex
+4de615bae08ec2ab7572cbccb947ef4b *test/actual/wybieraj.sap
+93391cdfc30781e9012a5212ae9c5f6a *test/actual/wybieraj.xex
 dd316ac5e2136a03f0e9a47b18f67bbd *test/actual/relocated/Cropky.rmt
 bcfa6f9cfb4b11c8e58436d341bd963b *test/actual/relocated/Delirium_Tremens.cmr
 fd6532dffe8dd528a0ff012889cff946 *test/actual/relocated/Euglena_Zielona.tmc
@@ -58,11 +66,3 @@ c63e3af50a92ef5e0821bcfcaeea4294 *test/actual/relocated/spirit1.md2
 a5a5c1cd41fd9329dffd1db4b80aa4b3 *test/actual/relocated/title.cms
 37b55d6b5c96c86e8c11c203edb65608 *test/actual/relocated/ultrance.tmc
 0a811cc1377f75afbc71f2ecc46f04fc *test/actual/relocated/wybieraj.dlt
-a82109051c3fe3f1247e667b68a8ed60 *test/actual/spirit1.sap
-762a02adf25da0d054fa43480a618a05 *test/actual/spirit1.xex
-fc6cefcca66e9e21dc87eb6e10397208 *test/actual/title.sap
-963531f7efe05deead6a997bb7c592c7 *test/actual/title.xex
-3a590752254e5e2c45fb4ac92c675b62 *test/actual/ultrance.sap
-e1e2803ff71a284c7018053d6161e8fa *test/actual/ultrance.xex
-4de615bae08ec2ab7572cbccb947ef4b *test/actual/wybieraj.sap
-93391cdfc30781e9012a5212ae9c5f6a *test/actual/wybieraj.xex
