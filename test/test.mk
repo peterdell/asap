@@ -16,7 +16,7 @@ test/conv: asapconv
 	./asapconv -o test/actual/.%e examples/{Cropky,Near,Pneumatic_Driller,Sill_Of_Destiny}.sap
 	./asapconv -o test/actual/.xex $(filter-out %.d15 %.d8 %/Ucieczka_w_Nicosc.sap, $(wildcard examples/*))
 	./asapconv -o test/actual/relocated/.%e --address=6789 $(filter-out %.d15 %.d8 %/Sweet_Illusions_Techno.sap %/Ucieczka_w_Nicosc.sap %/X_Ray_2.sap, $(wildcard examples/*))
-	md5sum test/actual/* test/actual/relocated/* | diff -u test/expected.txt -
+	md5sum test/actual/* test/actual/relocated/* | /usr/bin/sort -k2 | diff -u test/expected.txt -
 .PHONY: test/conv
 
 test/acid: asapscan $(TESTS_SAP)
