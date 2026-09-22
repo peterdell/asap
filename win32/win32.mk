@@ -13,7 +13,7 @@ FOOBAR2000_SDK_DIR = ../foobar2000_SDK
 WIX = $(DO)wix
 
 # Code signing
-DO_SIGN = $(DO)signtool sign -d "ASAP - Another Slight Atari Player $(VERSION)" -n "Open Source Developer, Piotr Fusik" -tr http://time.certum.pl -fd sha256 -td sha256 $^ && touch $@
+DO_SIGN = $(DO)signtool sign -d "ASAP - Another Slight Atari Player $(VERSION)" -n "Open Source Developer Piotr Fusik" -tr http://time.certum.pl -fd sha256 -td sha256 $^ && touch $@
 
 # no user-configurable paths below this line
 
