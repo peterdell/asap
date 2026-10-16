@@ -1,9 +1,6 @@
 ﻿ASAP - Another Slight Atari Player
 ==================================
 
-Development has moved to https://github.com/pfusik/asap
-This SourceForge repository is no longer updated.
-
 ASAP is a player of Atari 8-bit chiptunes for modern computers and mobile
 devices.  It emulates the POKEY sound chip and the 6502 processor.
 
