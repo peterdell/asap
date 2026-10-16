@@ -12,7 +12,7 @@ jobs:
     steps:
       - run: wget https://github.com/pfusik/xasm/releases/download/xasm-3.2.1/xasm_3.2.1-1_amd64.deb
       - run: sudo dpkg -i xasm_3.2.1-1_amd64.deb
-      - run: wget https://github.com/tebe6502/Mad-Assembler/blob/master/bin/linux_x86_64/mads
+      - run: wget https://github.com/tebe6502/Mad-Assembler/raw/master/bin/linux_x86_64/mads
       - run: sudo install mads /usr/local/bin/mads
       - run: wget https://github.com/fusionlanguage/fut/releases/download/fut-3.3.8/fut_3.3.8-1_amd64.deb
       - run: sudo dpkg -i fut_3.3.8-1_amd64.deb
