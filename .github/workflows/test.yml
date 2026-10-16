@@ -10,8 +10,8 @@ jobs:
   test:
     runs-on: ubuntu-26.04
     steps:
-      - run: gh release download --repo pfusik/xasm --pattern xasm_*_amd64.dev --dir /tmp/pkg
-      - run: gh release download --repo fusionlanguage/fut --pattern fut_*_amd64.dev --dir /tmp/pkg
+      - run: gh release download --repo pfusik/xasm --pattern xasm_*_amd64.deb --dir /tmp/pkg
+      - run: gh release download --repo fusionlanguage/fut --pattern fut_*_amd64.deb --dir /tmp/pkg
       - run: sudo apt-get install -y /tmp/pkg/*.deb
       - run: wget https://github.com/tebe6502/Mad-Assembler/raw/master/bin/linux_x86_64/mads
       - run: sudo install mads /usr/local/bin/mads
