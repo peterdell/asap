@@ -2,9 +2,9 @@
 	<h2>Feedback</h2>
 	<p>Please submit bug reports and feature requests in the
 	<a href="https://github.com/pfusik/asap/issues">GitHub tracker</a>.
-	Old tickets are in the <a href="https://sourceforge.net/p/asap/_list/tickets">SourceForge tracker</a></p>
+	Old tickets are in the <a href="https://sourceforge.net/p/asap/_list/tickets">SourceForge tracker</a>.</p>
 	<p>Ask questions in <a href="https://github.com/pfusik/asap/discussions">GitHub discussions</a>.
-	The <a href="https://lists.sourceforge.net/lists/listinfo/asap-users">mailing list</a> will be retired soon.</p>
+	The <a href="https://lists.sourceforge.net/lists/listinfo/asap-users">SourceForge mailing list</a> will be retired soon.</p>
 
 	<h2>For software developers</h2>
 	<p>Download the latest source release: <download prefix="asap-" suffix=".tar.gz" />
