@@ -26,6 +26,9 @@ DO = mkdir -p $(@D) &&
 else
 DO = @echo $@ && mkdir -p $(@D) && 
 endif
+ifeq ($(OS),Windows_NT)
+EXEEXT = .exe
+endif
 src = $(addprefix $(srcdir),$(1:.[ch]=.c) $(patsubst %.[ch],%.h,$(filter %.[ch],$(1))))
 INCLUDEOPTS = $(patsubst %/,-I%,$(sort $(dir $(filter %.h,$^))))
 CLEAN :=
