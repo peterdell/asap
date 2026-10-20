@@ -63,7 +63,7 @@ java/android/AndroidASAP-resources.apk: $(addprefix $(srcdir)java/android/,Andro
 	java/android/res/drawable-land/background.jpg java/android/res/drawable-land/stereo.jpg java/android/res/drawable-land-xhdpi/background.jpg java/android/res/drawable-land-xhdpi/stereo.jpg \
 	java/android/res/drawable-port/background.jpg java/android/res/drawable-port/stereo.jpg java/android/res/drawable-port-xhdpi/background.jpg java/android/res/drawable-port-xhdpi/stereo.jpg \
 	$(ASMA_DIR)/index.txt $(JAVA_OBX)
-	$(DO)mkdir -p java/android/gen && $(AAPT) p -f -m -M $< -I $(ANDROID_JAR) -S $(srcdir)java/android/res -A $(ASMA_DIR) --ignore-assets Docs:*.ttt -F $@ -J java/android/gen java/obx
+	$(DO)mkdir -p java/android/gen && $(AAPT) p -f -m -M $< -I $(ANDROID_JAR) -S $(srcdir)java/android/res -A $(ASMA_DIR) --ignore-assets Docs:*.a26:*.ttt -F $@ -J java/android/gen java/obx
 CLEAN += java/android/AndroidASAP-resources.apk java/android/gen/net/sf/asap/R.java
 
 $(ASMA_DIR)/index.txt: java/android/Indexer.class
