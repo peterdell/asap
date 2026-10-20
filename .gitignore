@@ -3,6 +3,8 @@
 *.exe
 *.o
 *.so
+asap2wav
+asapconv
 /aatr.c
 /aatr.h
 /asap-asapscan.c
