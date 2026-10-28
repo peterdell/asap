@@ -464,6 +464,8 @@ struct ASAP {
 static void ASAP_Construct(ASAP *self);
 static void ASAP_Destruct(ASAP *self);
 
+static int ASAP_GetFrameCycles(const ASAP *self);
+
 static int ASAP_PeekHardware(const ASAP *self, int addr);
 
 static void ASAP_PokeHardware(ASAP *self, int addr, int data);
@@ -479,8 +481,6 @@ static void ASAP_Call6502Player(ASAP *self);
 static bool ASAP_IsIrq(const ASAP *self);
 
 static void ASAP_HandleEvent(ASAP *self);
-
-static int ASAP_GetFrameCycles(const ASAP *self);
 
 static void ASAP_Do6502Cycles(ASAP *self, int cycles);
 
@@ -2532,6 +2532,11 @@ void ASAP_DetectSilence(ASAP *self, int seconds)
 	self->silenceCyclesCounter = self->silenceCycles = seconds * 1773447;
 }
 
+static int ASAP_GetFrameCycles(const ASAP *self)
+{
+	return ASAPInfo_IsNtsc(&self->moduleInfo) ? 29868 : 35568;
+}
+
 static int ASAP_PeekHardware(const ASAP *self, int addr)
 {
 	switch (addr & 65311) {
@@ -2553,7 +2558,7 @@ static int ASAP_PeekHardware(const ASAP *self, int addr)
 	case 54299:
 		;
 		int cycle = self->cpu.cycle;
-		if (cycle > (ASAPInfo_IsNtsc(&self->moduleInfo) ? 29868 : 35568))
+		if (cycle > ASAP_GetFrameCycles(self))
 			return 0;
 		return cycle / 228;
 	case 54287:
@@ -2726,11 +2731,6 @@ static void ASAP_HandleEvent(ASAP *self)
 	nextEventCycle = Pokey_CheckIrq(&self->pokeys.basePokey, cycle, nextEventCycle);
 	nextEventCycle = Pokey_CheckIrq(&self->pokeys.extraPokey, cycle, nextEventCycle);
 	self->nextEventCycle = nextEventCycle;
-}
-
-static int ASAP_GetFrameCycles(const ASAP *self)
-{
-	return ASAPInfo_IsNtsc(&self->moduleInfo) ? 29868 : 35568;
 }
 
 static void ASAP_Do6502Cycles(ASAP *self, int cycles)

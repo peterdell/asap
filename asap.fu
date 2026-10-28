@@ -357,6 +357,8 @@ public class ASAP
 		SilenceCyclesCounter = SilenceCycles = seconds * 1773447;
 	}
 
+	int GetFrameCycles() => ModuleInfo.IsNtsc() ? 262 * 114 : 312 * 114;
+
 	internal int PeekHardware(int addr)
 	{
 		switch (addr & 0xff1f) {
@@ -377,7 +379,7 @@ public class ASAP
 		case 0xd40b:
 		case 0xd41b:
 			int cycle = Cpu.Cycle;
-			if (cycle > (ModuleInfo.IsNtsc() ? 262 * 114 : 312 * 114))
+			if (cycle > GetFrameCycles())
 				return 0;
 			return cycle / 228;
 		case 0xd40f:
@@ -561,8 +563,6 @@ public class ASAP
 		nextEventCycle = Pokeys.ExtraPokey.CheckIrq(cycle, nextEventCycle);
 		NextEventCycle = nextEventCycle;
 	}
-
-	int GetFrameCycles() => ModuleInfo.IsNtsc() ? 262 * 114 : 312 * 114;
 
 	void Do6502Cycles!(int cycles)
 	{
